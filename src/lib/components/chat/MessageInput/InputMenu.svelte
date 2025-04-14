@@ -37,7 +37,7 @@
 	}
 
 	let fileUploadEnabled = true;
-	$: fileUploadEnabled = $user.role === 'admin' || $user?.permissions?.chat?.file_upload;
+	$: fileUploadEnabled = $user?.role === 'admin' || $user?.permissions?.chat?.file_upload;
 
 	const init = async () => {
 		if ($_tools === null) {
