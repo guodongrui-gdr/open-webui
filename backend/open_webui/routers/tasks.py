@@ -396,6 +396,7 @@ async def generate_queries(
     type = form_data.get("type")
     if type == "web_search":
         if not request.app.state.config.ENABLE_SEARCH_QUERY_GENERATION:
+            log.info(f'error in generate_queries')
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Search query generation is disabled",
@@ -430,7 +431,7 @@ async def generate_queries(
         models,
     )
 
-    log.debug(
+    log.info(
         f"generating {type} queries using model {task_model_id} for user {user.email}"
     )
 
@@ -442,7 +443,7 @@ async def generate_queries(
     content = query_generation_template(
         template, form_data["messages"], {"name": user.name}
     )
-
+    log.info(f'ycontent: {content}')
     payload = {
         "model": task_model_id,
         "messages": [{"role": "user", "content": content}],
@@ -458,12 +459,15 @@ async def generate_queries(
     # Process the payload through the pipeline
     try:
         payload = await process_pipeline_inlet_filter(request, payload, user, models)
+        log.info(f'ypayload: {payload}')
     except Exception as e:
+        log.info(f'error in process_pipeline_inlet_filter')
         raise e
 
     try:
         return await generate_chat_completion(request, form_data=payload, user=user)
     except Exception as e:
+        log.info('error in generate_chat_completion')
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={"detail": str(e)},

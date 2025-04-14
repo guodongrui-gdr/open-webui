@@ -73,11 +73,11 @@
 				</div>
 
 				<div class="">
-					<div
+					<div style="font-size: 25px"
 						class="flex gap-1 scrollbar-none overflow-x-auto w-fit text-center text-sm font-medium rounded-full bg-transparent py-1 touch-auto pointer-events-auto"
 					>
 						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.models}
-							<a
+							<a style="font-size: 25px"
 								class="min-w-fit rounded-full p-1.5 {$page.url.pathname.includes(
 									'/workspace/models'
 								)
@@ -88,7 +88,7 @@
 						{/if}
 
 						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.knowledge}
-							<a
+							<a style="font-size: 25px"
 								class="min-w-fit rounded-full p-1.5 {$page.url.pathname.includes(
 									'/workspace/knowledge'
 								)
@@ -101,7 +101,7 @@
 						{/if}
 
 						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.prompts}
-							<a
+							<a style="font-size: 25px"
 								class="min-w-fit rounded-full p-1.5 {$page.url.pathname.includes(
 									'/workspace/prompts'
 								)
@@ -112,7 +112,7 @@
 						{/if}
 
 						{#if $user?.role === 'admin' || $user?.permissions?.workspace?.tools}
-							<a
+							<a style="font-size: 25px"
 								class="min-w-fit rounded-full p-1.5 {$page.url.pathname.includes('/workspace/tools')
 									? ''
 									: 'text-gray-300 dark:text-gray-600 hover:text-gray-700 dark:hover:text-white'} transition"

@@ -43,13 +43,13 @@ def search_bocha(
         api_key (str): A Bocha Search API key
         query (str): The query to search for
     """
-    url = "https://api.bochaai.com/v1/web-search?utm_source=ollama"
+    url = "https://api.bochaai.com/v1/web-search"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-
+    log.info(f'headers:{headers}')
     payload = json.dumps(
         {"query": query, "summary": True, "freshness": "noLimit", "count": count}
     )
-
+    log.info(f'payload:{payload}')
     response = requests.post(url, headers=headers, data=payload, timeout=5)
     response.raise_for_status()
     results = _parse_response(response.json())

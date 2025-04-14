@@ -23,7 +23,7 @@ from open_webui.env import (
     WEBUI_AUTH,
     WEBUI_FAVICON_URL,
     WEBUI_NAME,
-    log,
+    log
 )
 from open_webui.internal.db import Base, get_db
 
@@ -489,7 +489,38 @@ OAUTH_ALLOWED_DOMAINS = PersistentConfig(
     ],
 )
 
+############################
+# 飞书
+############################
+FEISHU_APP_ID = PersistentConfig(
+    "FEISHU_APP_ID",
+    "oauth.feishu.client_id",
+    os.environ.get("FEISHU_APP_ID", ""),
+)
 
+FEISHU_APP_SECRET = PersistentConfig(
+    "FEISHU_APP_SECRET",
+    "oauth.feishu.client_secret",
+    os.environ.get("FEISHU_APP_SECRET", ""),
+)
+
+FEISHU_REDIRECT_URI = PersistentConfig(
+    "FEISHU_REDIRECT_URI",
+    "oauth.feishu.redirect_uri",
+    os.environ.get("FEISHU_REDIRECT_URI", ""),
+)
+
+FEISHU_FILE_REDIRECT_URI = PersistentConfig(
+    "FEISHU_FILE_REDIRECT_URI",
+    "oauth.feishu.file_redirect_uri",
+    os.environ.get("FEISHU_FILE_REDIRECT_URI", ""),
+)
+
+FEISHU_OPEN_ID = PersistentConfig(
+    "FEISHU_OPEN_ID",
+    "oauth.feishu.open_id",
+    os.environ.get("FEISHU_OPEN_ID", "")
+)
 def load_oauth_providers():
     OAUTH_PROVIDERS.clear()
     if GOOGLE_CLIENT_ID.value and GOOGLE_CLIENT_SECRET.value:
@@ -553,7 +584,49 @@ def load_oauth_providers():
             "register": github_oauth_register,
             "sub_claim": "id",
         }
-
+    # 飞书
+    if (
+        FEISHU_APP_ID.value
+        and FEISHU_APP_SECRET.value
+        and FEISHU_REDIRECT_URI.value
+    ):
+        def feishu_oauth_register(client):
+            client.register(
+                name="feishu",
+                client_id=FEISHU_APP_ID.value,
+                client_secret=FEISHU_APP_SECRET.value,
+                access_token_url="https://open.feishu.cn/open-apis/authen/v2/oauth/token",
+                authorize_url="https://open.feishu.cn/open-apis/authen/v1/authorize",
+                api_base_url="https://open.feishu.cn/open-apis/",
+                userinfo_endpoint="	https://open.feishu.cn/open-apis/authen/v1/user_info",
+                redirect_uri=FEISHU_REDIRECT_URI,
+            )
+        OAUTH_PROVIDERS["feishu"] = {
+            "redirect_uri": FEISHU_REDIRECT_URI.value,
+            "register": feishu_oauth_register,
+            "sub_claim": "open_id",
+        }
+    if (
+        FEISHU_APP_ID.value
+        and FEISHU_APP_SECRET.value
+        and FEISHU_FILE_REDIRECT_URI.value
+    ):
+        def feishu_oauth_register(client):
+            client.register(
+                name="feishu_file",
+                client_id=FEISHU_APP_ID.value,
+                client_secret=FEISHU_APP_SECRET.value,
+                access_token_url="https://open.feishu.cn/open-apis/authen/v2/oauth/token",
+                authorize_url="https://open.feishu.cn/open-apis/authen/v1/authorize",
+                api_base_url="https://open.feishu.cn/open-apis/",
+                userinfo_endpoint="	https://open.feishu.cn/open-apis/authen/v1/user_info",
+                redirect_uri=FEISHU_FILE_REDIRECT_URI,
+            )
+        OAUTH_PROVIDERS["feishu_file"] = {
+            "redirect_uri": FEISHU_REDIRECT_URI.value,
+            "register": feishu_oauth_register,
+            "sub_claim": "open_id",
+        }
     if (
         OAUTH_CLIENT_ID.value
         and OAUTH_CLIENT_SECRET.value

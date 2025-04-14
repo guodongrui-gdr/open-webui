@@ -1420,7 +1420,9 @@ async def process_web_search(
         web_results = search_web(
             request, request.app.state.config.RAG_WEB_SEARCH_ENGINE, form_data.query
         )
+        log.info(f"web_results: {web_results[0]}")
     except Exception as e:
+        log.info(f"联网搜索失败")
         log.exception(e)
 
         raise HTTPException(

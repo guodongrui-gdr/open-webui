@@ -467,8 +467,14 @@
 
 							{#if atSelectedModel !== undefined}
 								<div class="flex items-center justify-between w-full">
-									<div class="pl-[1px] flex items-center gap-2 text-sm dark:text-gray-500">
-										<img
+									<div class="pl-[1px] flex items-center gap-2 text-sm dark:text-gray-500" style=" width: 30px;color:#fff;
+    height: 30px;
+    background: #1890ff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;"> F
+										<!--<img
 											crossorigin="anonymous"
 											alt="model profile"
 											class="size-3.5 max-w-[28px] object-cover rounded-full"
@@ -477,7 +483,7 @@
 												($i18n.language === 'dg-DG'
 													? `/doge.png`
 													: `${WEBUI_BASE_URL}/static/favicon.png`)}
-										/>
+										/>-->
 										<div class="translate-y-[0.5px]">
 											Talking to <span class=" font-medium">{atSelectedModel.name}</span>
 										</div>
@@ -1231,7 +1237,7 @@
 									</div>
 
 									<div class="self-end flex space-x-1 mr-1 shrink-0">
-										{#if !history?.currentId || history.messages[history.currentId]?.done == true}
+										<!--	{#if !history?.currentId || history.messages[history.currentId]?.done == true}
 											<Tooltip content={$i18n.t('Record voice')}>
 												<button
 													id="voice-input-button"
@@ -1278,10 +1284,37 @@
 													</svg>
 												</button>
 											</Tooltip>
-										{/if}
+										{/if}-->
 
 										{#if !history.currentId || history.messages[history.currentId]?.done == true}
-											{#if prompt === '' && files.length === 0}
+												<div class=" flex items-center">
+													<Tooltip content={$i18n.t('Send message')}>
+														<button
+															id="send-message-button"
+															class="{!(prompt === '' && files.length === 0)
+																? webSearchEnabled || ($settings?.webSearch ?? false) === 'always'
+																	? 'bg-blue-500 text-white hover:bg-blue-400 '
+																	: 'bg-black text-white hover:bg-gray-900 dark:bg-white dark:text-black dark:hover:bg-gray-100 '
+																: 'text-white bg-gray-200 dark:text-gray-900 dark:bg-gray-700 disabled'} transition rounded-full p-1.5 self-center"
+															type="submit"
+															disabled={prompt === '' && files.length === 0}
+														>
+															<svg
+																xmlns="http://www.w3.org/2000/svg"
+																viewBox="0 0 16 16"
+																fill="currentColor"
+																class="size-5"
+															>
+																<path
+																	fill-rule="evenodd"
+																	d="M8 14a.75.75 0 0 1-.75-.75V4.56L4.03 7.78a.75.75 0 0 1-1.06-1.06l4.5-4.5a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06L8.75 4.56v8.69A.75.75 0 0 1 8 14Z"
+																	clip-rule="evenodd"
+																/>
+															</svg>
+														</button>
+													</Tooltip>
+												</div>
+											<!--{#if prompt === '' && files.length === 0}
 												<div class=" flex items-center">
 													<Tooltip content={$i18n.t('Call')}>
 														<button
@@ -1376,7 +1409,7 @@
 														</button>
 													</Tooltip>
 												</div>
-											{/if}
+											{/if}-->
 										{:else}
 											<div class=" flex items-center">
 												<Tooltip content={$i18n.t('Stop')}>

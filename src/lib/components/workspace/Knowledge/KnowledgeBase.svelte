@@ -812,6 +812,7 @@
 								<div>
 									<AddContentMenu
 										on:upload={(e) => {
+											console.log('AddContentMenu',e)
 											if (e.detail.type === 'directory') {
 												uploadDirectoryHandler();
 											} else if (e.detail.type === 'text') {
@@ -821,6 +822,7 @@
 											}
 										}}
 										on:sync={(e) => {
+											console.log('showSyncConfirmModal',e)
 											showSyncConfirmModal = true;
 										}}
 									/>

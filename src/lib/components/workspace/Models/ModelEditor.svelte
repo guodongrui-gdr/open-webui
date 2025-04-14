@@ -543,7 +543,7 @@
 
 						<div class="mt-2">
 							<div class="my-1">
-								<div class=" text-xs font-semibold mb-2">{$i18n.t('System Prompt')}</div>
+								<!--<div class=" text-xs font-semibold mb-2">{$i18n.t('System Prompt')}</div>
 								<div>
 									<Textarea
 										className=" text-sm w-full bg-transparent outline-hidden resize-none overflow-y-hidden "
@@ -551,7 +551,7 @@
 										rows={4}
 										bind:value={info.params.system}
 									/>
-								</div>
+								</div>-->
 							</div>
 
 							<div class="flex w-full justify-between">

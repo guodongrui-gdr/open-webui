@@ -113,8 +113,8 @@
 						}
 					}}
 				>
-					<option class=" text-gray-700" value="private" selected>Private</option>
-					<option class=" text-gray-700" value="public" selected>Public</option>
+					<option class=" text-gray-700" value="private" selected>私人</option>
+					<option class=" text-gray-700" value="public" selected>公共</option>
 				</select>
 
 				<div class=" text-xs text-gray-400 font-medium">

@@ -1,7 +1,7 @@
 <script>
 	import { toast } from 'svelte-sonner';
 
-	import { onMount, getContext, tick } from 'svelte';
+	import { onMount, getContext } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
@@ -28,12 +28,6 @@
 
 	let ldapUsername = '';
 
-	const querystringValue = (key) => {
-		const querystring = window.location.search;
-		const urlParams = new URLSearchParams(querystring);
-		return urlParams.get(key);
-	};
-
 	const setSessionUser = async (sessionUser) => {
 		if (sessionUser) {
 			console.log(sessionUser);
@@ -45,9 +39,7 @@
 			$socket.emit('user-join', { auth: { token: sessionUser.token } });
 			await user.set(sessionUser);
 			await config.set(await getBackendConfig());
-
-			const redirectPath = querystringValue('redirect') || '/';
-			goto(redirectPath);
+			goto('/');
 		}
 	};
 
@@ -99,13 +91,16 @@
 		}
 		const params = new URLSearchParams(hash);
 		const token = params.get('token');
+		console.log('token',token,!token)
 		if (!token) {
 			return;
 		}
+
 		const sessionUser = await getSessionUser(token).catch((error) => {
 			toast.error(`${error}`);
 			return null;
 		});
+		console.log('sessionUser',sessionUser,!sessionUser)
 		if (!sessionUser) {
 			return;
 		}
@@ -115,29 +110,6 @@
 
 	let onboarding = false;
 
-	async function setLogoImage() {
-		await tick();
-		const logo = document.getElementById('logo');
-
-		if (logo) {
-			const isDarkMode = document.documentElement.classList.contains('dark');
-
-			if (isDarkMode) {
-				const darkImage = new Image();
-				darkImage.src = '/static/favicon-dark.png';
-
-				darkImage.onload = () => {
-					logo.src = '/static/favicon-dark.png';
-					logo.style.filter = ''; // Ensure no inversion is applied if favicon-dark.png exists
-				};
-
-				darkImage.onerror = () => {
-					logo.style.filter = 'invert(1)'; // Invert image if favicon-dark.png is missing
-				};
-			}
-		}
-	}
-
 	onMount(async () => {
 		if ($user !== undefined) {
 			await goto('/');
@@ -145,8 +117,6 @@
 		await checkOauthCallback();
 
 		loaded = true;
-		setLogoImage();
-
 		if (($config?.features.auth_trusted_header ?? false) || $config?.features.auth === false) {
 			await signInHandler();
 		} else {
@@ -177,14 +147,20 @@
 	{#if loaded}
 		<div class="fixed m-10 z-50">
 			<div class="flex space-x-2">
-				<div class=" self-center">
-					<img
-						id="logo"
-						crossorigin="anonymous"
-						src="{WEBUI_BASE_URL}/static/splash.png"
-						class=" w-6 rounded-full"
-						alt="logo"
-					/>
+				<div class=" self-center" style="    width: 30px;
+    height: 30px;
+    background: #1890ff;
+    border-radius: 50%;
+    display: flex
+;
+    align-items: center;
+    justify-content: center;">F
+<!--					<img-->
+<!--						crossorigin="anonymous"-->
+<!--						src="{WEBUI_BASE_URL}/static/splash.png"-->
+<!--						class=" w-6 rounded-full dark:invert"-->
+<!--						alt="logo"-->
+<!--					/>-->
 				</div>
 			</div>
 		</div>
@@ -209,14 +185,22 @@
 					</div>
 				{:else}
 					<div class="  my-auto pb-10 w-full dark:text-gray-100">
-						<form
+						<button style="background: #1890ff;color:#fff"
+							class="flex justify-center items-center bg-gray-700/5 hover:bg-gray-700/10 dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-medium text-sm py-2.5"
+							on:click={() => {
+											window.location.href = `${WEBUI_BASE_URL}/oauth/feishu/login`;
+										}}
+						>
+							<span>使用飞书登录</span>
+						</button>
+						<!--<form
 							class=" flex flex-col justify-center"
 							on:submit={(e) => {
 								e.preventDefault();
 								submitHandler();
 							}}
 						>
-							<div class="mb-1">
+							&lt;!&ndash;<div class="mb-1">
 								<div class=" text-2xl font-medium">
 									{#if $config?.onboarding ?? false}
 										{$i18n.t(`Get started with {{WEBUI_NAME}}`, { WEBUI_NAME: $WEBUI_NAME })}
@@ -237,7 +221,7 @@
 										)}
 									</div>
 								{/if}
-							</div>
+							</div>&ndash;&gt;
 
 							{#if $config?.features.enable_login_form || $config?.features.enable_ldap}
 								<div class="flex flex-col mt-4">
@@ -285,7 +269,6 @@
 
 									<div>
 										<div class=" text-sm font-medium text-left mb-1">{$i18n.t('Password')}</div>
-
 										<input
 											bind:value={password}
 											type="password"
@@ -343,9 +326,9 @@
 									{/if}
 								{/if}
 							</div>
-						</form>
+						</form>-->
 
-						{#if Object.keys($config?.oauth?.providers ?? {}).length > 0}
+						<!--{#if Object.keys($config?.oauth?.providers ?? {}).length > 0}
 							<div class="inline-flex items-center justify-center w-full">
 								<hr class="w-32 h-px my-4 border-0 dark:bg-gray-100/10 bg-gray-700/10" />
 								{#if $config?.features.enable_login_form || $config?.features.enable_ldap}
@@ -383,7 +366,7 @@
 										<span>{$i18n.t('Continue with {{provider}}', { provider: 'Google' })}</span>
 									</button>
 								{/if}
-								{#if $config?.oauth?.providers?.microsoft}
+								&lt;!&ndash;{#if $config?.oauth?.providers?.microsoft}
 									<button
 										class="flex justify-center items-center bg-gray-700/5 hover:bg-gray-700/10 dark:bg-gray-100/5 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition w-full rounded-full font-medium text-sm py-2.5"
 										on:click={() => {
@@ -452,11 +435,11 @@
 											})}</span
 										>
 									</button>
-								{/if}
+								{/if}&ndash;&gt;
 							</div>
-						{/if}
+						{/if}-->
 
-						{#if $config?.features.enable_ldap && $config?.features.enable_login_form}
+						<!--{#if $config?.features.enable_ldap && $config?.features.enable_login_form}
 							<div class="mt-2">
 								<button
 									class="flex justify-center items-center text-xs w-full text-center underline"
@@ -474,7 +457,7 @@
 									>
 								</button>
 							</div>
-						{/if}
+						{/if}-->
 					</div>
 				{/if}
 			</div>

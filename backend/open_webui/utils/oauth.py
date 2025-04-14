@@ -236,6 +236,7 @@ class OAuthManager:
         user_data: UserInfo = token.get("userinfo")
         if not user_data or auth_manager_config.OAUTH_EMAIL_CLAIM not in user_data:
             user_data: UserInfo = await client.userinfo(token=token)
+            user_data = user_data.get("data", {})
         if not user_data:
             log.warning(f"OAuth callback failed, user data is missing: {token}")
             raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
@@ -246,46 +247,13 @@ class OAuthManager:
             raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
         provider_sub = f"{provider}@{sub}"
         email_claim = auth_manager_config.OAUTH_EMAIL_CLAIM
-        email = user_data.get(email_claim, "")
+        email = user_data.get(email_claim, "").lower()
         # We currently mandate that email addresses are provided
         if not email:
-            # If the provider is GitHub,and public email is not provided, we can use the access token to fetch the user's email
-            if provider == "github":
-                try:
-                    access_token = token.get("access_token")
-                    headers = {"Authorization": f"Bearer {access_token}"}
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(
-                            "https://api.github.com/user/emails", headers=headers
-                        ) as resp:
-                            if resp.ok:
-                                emails = await resp.json()
-                                # use the primary email as the user's email
-                                primary_email = next(
-                                    (e["email"] for e in emails if e.get("primary")),
-                                    None,
-                                )
-                                if primary_email:
-                                    email = primary_email
-                                else:
-                                    log.warning(
-                                        "No primary email found in GitHub response"
-                                    )
-                                    raise HTTPException(
-                                        400, detail=ERROR_MESSAGES.INVALID_CRED
-                                    )
-                            else:
-                                log.warning("Failed to fetch GitHub email")
-                                raise HTTPException(
-                                    400, detail=ERROR_MESSAGES.INVALID_CRED
-                                )
-                except Exception as e:
-                    log.warning(f"Error fetching GitHub email: {e}")
-                    raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
-            else:
+            email = user_data.get("enterprise_email", "").lower()
+            if not email:
                 log.warning(f"OAuth callback failed, email is missing: {user_data}")
                 raise HTTPException(400, detail=ERROR_MESSAGES.INVALID_CRED)
-        email = email.lower()
         if (
             "*" not in auth_manager_config.OAUTH_ALLOWED_DOMAINS
             and email.split("@")[-1] not in auth_manager_config.OAUTH_ALLOWED_DOMAINS
@@ -426,5 +394,5 @@ class OAuthManager:
                 secure=WEBUI_AUTH_COOKIE_SECURE,
             )
         # Redirect back to the frontend with the JWT token
-        redirect_url = f"{request.base_url}auth#token={jwt_token}"
+        redirect_url = f"{request.base_url.__str__()[:-1]}/auth#token={jwt_token}"
         return RedirectResponse(url=redirect_url, headers=response.headers)

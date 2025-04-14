@@ -22,7 +22,7 @@
 	});
 </script>
 
-<div>
+<!--<div>
 	<div class="flex w-full justify-between mb-1">
 		<div class=" self-center text-sm font-semibold">{$i18n.t('Filters')}</div>
 	</div>
@@ -31,7 +31,7 @@
 		{$i18n.t('To select filters here, add them to the "Functions" workspace first.')}
 	</div>
 
-	<!-- TODO: Filer order matters -->
+	&lt;!&ndash; TODO: Filer order matters &ndash;&gt;
 	<div class="flex flex-col">
 		{#if filters.length > 0}
 			<div class=" flex items-center mt-2 flex-wrap">
@@ -57,4 +57,4 @@
 			</div>
 		{/if}
 	</div>
-</div>
+</div>-->

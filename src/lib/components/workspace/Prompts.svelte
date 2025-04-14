@@ -129,11 +129,14 @@
 			</div>
 
 			<div>
-				<a
+				<a style="display:flex;width: 100px;
+				height: 35px;
+				background: #1890ff;
+				color: #fff;"
 					class=" px-2 py-2 rounded-xl hover:bg-gray-700/10 dark:hover:bg-gray-100/10 dark:text-gray-300 dark:hover:text-white transition font-medium text-sm flex items-center space-x-1"
 					href="/workspace/prompts/create"
 				>
-					<Plus className="size-3.5" />
+					<Plus className="size-3.5" />新增提示词
 				</a>
 			</div>
 		</div>
@@ -316,7 +319,7 @@
 		</div>
 	{/if}
 
-	{#if $config?.features.enable_community_sharing}
+	<!--{#if $config?.features.enable_community_sharing}
 		<div class=" my-16">
 			<div class=" text-xl font-medium mb-1 line-clamp-1">
 				{$i18n.t('Made by Open WebUI Community')}
@@ -341,7 +344,7 @@
 				</div>
 			</a>
 		</div>
-	{/if}
+	{/if}-->
 {:else}
 	<div class="w-full h-full flex justify-center items-center">
 		<Spinner />

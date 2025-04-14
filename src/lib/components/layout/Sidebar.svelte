@@ -476,6 +476,41 @@
 			: 'invisible'}"
 	>
 		<div class="px-1.5 flex justify-between space-x-1 text-gray-600 dark:text-gray-400">
+			<a
+				id="sidebar-new-chat-button"
+				class="flex justify-between items-center flex-1 rounded-lg px-2 py-1 h-full text-right hover:bg-gray-100 dark:hover:bg-gray-900 transition no-drag-region"
+				href="/"
+				draggable="false"
+				on:click={async () => {
+					selectedChatId = null;
+					await goto('/');
+					const newChatButton = document.getElementById('new-chat-button');
+					setTimeout(() => {
+						newChatButton?.click();
+						if ($mobile) {
+							showSidebar.set(false);
+						}
+					}, 0);
+				}}
+			>
+				<div class="flex items-center">
+					<div class="self-center mx-1.5">
+						<img style="width: 35px;height:35px"
+							crossorigin="anonymous"
+							src="{WEBUI_BASE_URL}/favicon.png"
+							class=" size-5 -translate-x-1.5 rounded-full"
+							alt="logo"
+						/>
+					</div>
+					<div class=" self-center font-medium text-sm text-gray-850 dark:text-white font-primary" style="font-size: 18px;">
+						{$i18n.t('New Chat')}
+					</div>
+				</div>
+
+				<div>
+					<PencilSquare className=" size-5" strokeWidth="2" />
+				</div>
+			</a>
 			<button
 				class=" cursor-pointer p-[7px] flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-900 transition"
 				on:click={() => {
@@ -499,42 +534,6 @@
 					</svg>
 				</div>
 			</button>
-
-			<a
-				id="sidebar-new-chat-button"
-				class="flex justify-between items-center flex-1 rounded-lg px-2 py-1 h-full text-right hover:bg-gray-100 dark:hover:bg-gray-900 transition no-drag-region"
-				href="/"
-				draggable="false"
-				on:click={async () => {
-					selectedChatId = null;
-					await goto('/');
-					const newChatButton = document.getElementById('new-chat-button');
-					setTimeout(() => {
-						newChatButton?.click();
-						if ($mobile) {
-							showSidebar.set(false);
-						}
-					}, 0);
-				}}
-			>
-				<div class="flex items-center">
-					<div class="self-center mx-1.5">
-						<img
-							crossorigin="anonymous"
-							src="{WEBUI_BASE_URL}/static/favicon.png"
-							class=" size-5 -translate-x-1.5 rounded-full"
-							alt="logo"
-						/>
-					</div>
-					<div class=" self-center font-medium text-sm text-gray-850 dark:text-white font-primary">
-						{$i18n.t('New Chat')}
-					</div>
-				</div>
-
-				<div>
-					<PencilSquare className=" size-5" strokeWidth="2" />
-				</div>
-			</a>
 		</div>
 
 		<!-- {#if $user?.role === 'admin'}
@@ -596,7 +595,7 @@
 					</div>
 
 					<div class="flex self-center translate-y-[0.5px]">
-						<div class=" self-center font-medium text-sm font-primary">{$i18n.t('Workspace')}</div>
+						<div class=" self-center font-medium text-sm font-primary" style="font-size: 18px">{$i18n.t('Workspace')}</div>
 					</div>
 				</a>
 			</div>
