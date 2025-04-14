@@ -2,47 +2,38 @@ import asyncio
 import hashlib
 import json
 import logging
-from pathlib import Path
-from typing import Literal, Optional, overload
+from typing import Optional
 
 import aiohttp
-from aiocache import cached
 import requests
-
-
-from fastapi import Depends, FastAPI, HTTPException, Request, APIRouter
-from fastapi.middleware.cors import CORSMiddleware
+from aiocache import cached
+from fastapi import Depends, HTTPException, Request, APIRouter
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
 
-from open_webui.models.models import Models
 from open_webui.config import (
     CACHE_DIR,
 )
+from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import (
     AIOHTTP_CLIENT_TIMEOUT,
     AIOHTTP_CLIENT_TIMEOUT_MODEL_LIST,
     ENABLE_FORWARD_USER_INFO_HEADERS,
     BYPASS_MODEL_ACCESS_CONTROL,
 )
+from open_webui.env import SRC_LOG_LEVELS
+from open_webui.models.models import Models
 from open_webui.models.users import UserModel
-
-from open_webui.constants import ERROR_MESSAGES
-from open_webui.env import ENV, SRC_LOG_LEVELS
-
-
+from open_webui.utils.access_control import has_access
+from open_webui.utils.auth import get_admin_user, get_verified_user
+from open_webui.utils.misc import (
+    convert_logit_bias_input_to_json,
+)
 from open_webui.utils.payload import (
     apply_model_params_to_body_openai,
     apply_model_system_prompt_to_body,
 )
-from open_webui.utils.misc import (
-    convert_logit_bias_input_to_json,
-)
-
-from open_webui.utils.auth import get_admin_user, get_verified_user
-from open_webui.utils.access_control import has_access
-
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["OPENAI"])

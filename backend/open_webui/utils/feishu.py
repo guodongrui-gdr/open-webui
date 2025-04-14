@@ -5,16 +5,15 @@
 @ Author: gdr
 """
 import logging
-import os
 import sys
 from io import BytesIO
 from typing import Tuple, List, BinaryIO
 
 import requests
 from fastapi import HTTPException
-from open_webui.config import FEISHU_APP_ID, FEISHU_APP_SECRET
 
-from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL, OPEN_WEBUI_DIR
+from open_webui.config import FEISHU_APP_ID, FEISHU_APP_SECRET
+from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)

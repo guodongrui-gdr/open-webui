@@ -1,29 +1,20 @@
-import time
 import logging
 import sys
+import time
 
-from aiocache import cached
 from fastapi import Request
-
-from open_webui.routers import openai, ollama
-from open_webui.functions import get_function_models
-
-
-from open_webui.models.functions import Functions
-from open_webui.models.models import Models
-
-
-from open_webui.utils.plugin import load_function_module_by_id
-from open_webui.utils.access_control import has_access
-
 
 from open_webui.config import (
     DEFAULT_ARENA_MODEL,
 )
-
 from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL
+from open_webui.functions import get_function_models
+from open_webui.models.functions import Functions
+from open_webui.models.models import Models
 from open_webui.models.users import UserModel
-
+from open_webui.routers import openai, ollama
+from open_webui.utils.access_control import has_access
+from open_webui.utils.plugin import load_function_module_by_id
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)

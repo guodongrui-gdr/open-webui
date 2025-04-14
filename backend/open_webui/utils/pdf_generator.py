@@ -1,15 +1,12 @@
+import site
 from datetime import datetime
-from io import BytesIO
+from html import escape
 from pathlib import Path
 from typing import Dict, Any, List
-from html import escape
 
-from markdown import markdown
-
-import site
 from fpdf import FPDF
 
-from open_webui.env import STATIC_DIR, FONTS_DIR
+from open_webui.env import STATIC_DIR
 from open_webui.models.chats import ChatTitleMessagesForm
 
 

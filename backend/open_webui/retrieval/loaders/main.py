@@ -1,8 +1,8 @@
-import requests
 import logging
-import ftfy
 import sys
 
+import ftfy
+import requests
 from langchain_community.document_loaders import (
     AzureAIDocumentIntelligenceLoader,
     BSHTMLLoader,
@@ -13,17 +13,14 @@ from langchain_community.document_loaders import (
     TextLoader,
     UnstructuredEPubLoader,
     UnstructuredExcelLoader,
-    UnstructuredMarkdownLoader,
     UnstructuredPowerPointLoader,
     UnstructuredRSTLoader,
     UnstructuredXMLLoader,
-    YoutubeLoader,
 )
 from langchain_core.documents import Document
 
-from open_webui.retrieval.loaders.mistral import MistralLoader
-
 from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL
+from open_webui.retrieval.loaders.mistral import MistralLoader
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)

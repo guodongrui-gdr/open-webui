@@ -1,19 +1,18 @@
-import logging
-import uuid
-import jwt
 import base64
-import hmac
 import hashlib
-import requests
+import hmac
+import logging
 import os
-
-
+import uuid
 from datetime import datetime, timedelta
-import pytz
-from pytz import UTC
-from typing import Optional, Union, List, Dict
+from typing import Optional, Union
 
-from open_webui.models.users import Users
+import jwt
+import requests
+from fastapi import BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from passlib.context import CryptContext
+from pytz import UTC
 
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import (
@@ -22,11 +21,7 @@ from open_webui.env import (
     STATIC_DIR,
     SRC_LOG_LEVELS,
 )
-
-from fastapi import BackgroundTasks, Depends, HTTPException, Request, Response, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from passlib.context import CryptContext
-
+from open_webui.models.users import Users
 
 logging.getLogger("passlib").setLevel(logging.ERROR)
 

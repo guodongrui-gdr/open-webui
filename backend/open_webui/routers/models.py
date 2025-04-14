@@ -1,5 +1,8 @@
 from typing import Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+
+from open_webui.constants import ERROR_MESSAGES
 from open_webui.models.models import (
     ModelForm,
     ModelModel,
@@ -7,13 +10,8 @@ from open_webui.models.models import (
     ModelUserResponse,
     Models,
 )
-from open_webui.constants import ERROR_MESSAGES
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-
-
-from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.utils.access_control import has_access, has_permission
-
+from open_webui.utils.auth import get_admin_user, get_verified_user
 
 router = APIRouter()
 

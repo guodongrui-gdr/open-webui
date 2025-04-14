@@ -1,10 +1,11 @@
-import requests
 import logging
 import os
 import sys
 from typing import List, Dict, Any
 
+import requests
 from langchain_core.documents import Document
+
 from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)

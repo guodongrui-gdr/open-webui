@@ -1,16 +1,17 @@
-from pymilvus import MilvusClient as Client
-from pymilvus import FieldSchema, DataType
 import json
 import logging
 from typing import Optional
 
-from open_webui.retrieval.vector.main import VectorItem, SearchResult, GetResult
+from pymilvus import DataType
+from pymilvus import MilvusClient as Client
+
 from open_webui.config import (
     MILVUS_URI,
     MILVUS_DB,
     MILVUS_TOKEN,
 )
 from open_webui.env import SRC_LOG_LEVELS
+from open_webui.retrieval.vector.main import VectorItem, SearchResult, GetResult
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["RAG"])

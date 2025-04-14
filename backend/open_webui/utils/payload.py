@@ -1,10 +1,10 @@
-from open_webui.utils.task import prompt_template, prompt_variables_template
+import json
+from typing import Callable, Optional
+
 from open_webui.utils.misc import (
     add_or_update_system_message,
 )
-
-from typing import Callable, Optional
-import json
+from open_webui.utils.task import prompt_template, prompt_variables_template
 
 
 # inplace function: form_data is modified

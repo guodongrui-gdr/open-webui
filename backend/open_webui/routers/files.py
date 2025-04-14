@@ -7,7 +7,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Optional, Tuple, List
+from typing import Optional, List
 from urllib.parse import quote
 
 from fastapi import (
@@ -21,6 +21,8 @@ from fastapi import (
     Query,
 )
 from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel
+
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import SRC_LOG_LEVELS
 from open_webui.models.files import (
@@ -30,14 +32,10 @@ from open_webui.models.files import (
     Files,
 )
 from open_webui.models.knowledge import Knowledges
-
-from open_webui.routers.knowledge import get_knowledge, get_knowledge_list
-from open_webui.routers.retrieval import ProcessFileForm, process_file
 from open_webui.routers.audio import transcribe
+from open_webui.routers.retrieval import ProcessFileForm, process_file
 from open_webui.storage.provider import Storage
 from open_webui.utils.auth import get_admin_user, get_verified_user
-from pydantic import BaseModel
-
 from open_webui.utils.feishu import extract_doc_info, create_export_task, get_export_file_token, \
     get_tenant_access_token, download_file
 

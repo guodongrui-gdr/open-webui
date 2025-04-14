@@ -1,14 +1,15 @@
 import io
 import os
+from unittest.mock import MagicMock
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from moto import mock_aws
-from open_webui.storage import provider
 from gcp_storage_emulator.server import create_server
 from google.cloud import storage
-from azure.storage.blob import BlobServiceClient, ContainerClient, BlobClient
-from unittest.mock import MagicMock
+from moto import mock_aws
+
+from open_webui.storage import provider
 
 
 def mock_upload_dir(monkeypatch, tmp_path):

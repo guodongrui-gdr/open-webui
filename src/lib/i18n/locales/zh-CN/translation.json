@@ -1237,7 +1237,7 @@
 	"Works together with top-k. A higher value (e.g., 0.95) will lead to more diverse text, while a lower value (e.g., 0.5) will generate more focused and conservative text.": "与 top-k 配合使用。较高的值（例如 0.95）将产生更加多样化的文本，而较低的值（例如 0.5）将产生更加集中和保守的文本。",
 	"Workspace": "工作空间",
 	"Workspace Permissions": "工作空间权限",
-	"Write": "写作",
+	"Write": "写入",
 	"Write a prompt suggestion (e.g. Who are you?)": "写一个提示词建议（例如：你是谁？）",
 	"Write a summary in 50 words that summarizes [topic or keyword].": "用 50 个字写一个总结 [主题或关键词]。",
 	"Write something...": "单击以键入内容...",

@@ -44,8 +44,6 @@
 	export let className = '';
 	export let buttonClassName =
 		'w-fit text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition';
-
-	export let id = '';
 	export let title = null;
 	export let attributes = null;
 

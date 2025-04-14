@@ -1,15 +1,14 @@
+import collections.abc
 import hashlib
+import json
+import logging
 import re
 import time
 import uuid
-import logging
 from datetime import timedelta
 from pathlib import Path
-from typing import Callable, Optional
-import json
+from typing import Optional
 
-
-import collections.abc
 from open_webui.env import SRC_LOG_LEVELS
 
 log = logging.getLogger(__name__)

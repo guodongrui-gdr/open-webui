@@ -1,15 +1,19 @@
-from typing import List, Optional
-from pydantic import BaseModel
-from fastapi import APIRouter, Depends, HTTPException, status, Request
 import logging
+from typing import List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from pydantic import BaseModel
+
+from open_webui.constants import ERROR_MESSAGES
+from open_webui.env import SRC_LOG_LEVELS
+from open_webui.models.files import Files, FileModel
 from open_webui.models.knowledge import (
     Knowledges,
     KnowledgeForm,
     KnowledgeResponse,
     KnowledgeUserResponse,
 )
-from open_webui.models.files import Files, FileModel
+from open_webui.models.models import Models, ModelForm
 from open_webui.retrieval.vector.connector import VECTOR_DB_CLIENT
 from open_webui.routers.retrieval import (
     process_file,
@@ -17,16 +21,8 @@ from open_webui.routers.retrieval import (
     process_files_batch,
     BatchProcessFilesForm,
 )
-from open_webui.storage.provider import Storage
-
-from open_webui.constants import ERROR_MESSAGES
-from open_webui.utils.auth import get_verified_user
 from open_webui.utils.access_control import has_access, has_permission
-
-
-from open_webui.env import SRC_LOG_LEVELS
-from open_webui.models.models import Models, ModelForm
-
+from open_webui.utils.auth import get_verified_user
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["MODELS"])

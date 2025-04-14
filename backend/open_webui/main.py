@@ -1,95 +1,33 @@
 import asyncio
-import inspect
 import json
 import logging
 import mimetypes
 import os
-import shutil
 import sys
 import time
-import random
-
 from contextlib import asynccontextmanager
 from urllib.parse import urlencode, parse_qs, urlparse
-from pydantic import BaseModel
-from sqlalchemy import text
 
-from typing import Optional
-from aiocache import cached
 import aiohttp
 import requests
-
-
 from fastapi import (
     Depends,
     FastAPI,
-    File,
-    Form,
     HTTPException,
     Request,
-    UploadFile,
     status,
     applications,
-    BackgroundTasks,
 )
-
-from fastapi.openapi.docs import get_swagger_ui_html
-
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-
+from pydantic import BaseModel
+from sqlalchemy import text
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.responses import Response, StreamingResponse
-
-
-from open_webui.utils import logger
-from open_webui.utils.audit import AuditLevel, AuditLoggingMiddleware
-from open_webui.utils.logger import start_logger
-from open_webui.socket.main import (
-    app as socket_app,
-    periodic_usage_pool_cleanup,
-)
-from open_webui.routers import (
-    audio,
-    images,
-    ollama,
-    openai,
-    retrieval,
-    pipelines,
-    tasks,
-    auths,
-    channels,
-    chats,
-    folders,
-    configs,
-    groups,
-    files,
-    functions,
-    memories,
-    models,
-    knowledge,
-    prompts,
-    evaluations,
-    tools,
-    users,
-    utils,
-)
-
-from open_webui.routers.retrieval import (
-    get_embedding_function,
-    get_ef,
-    get_rf,
-)
-
-from open_webui.internal.db import Session, engine
-
-from open_webui.models.functions import Functions
-from open_webui.models.models import Models
-from open_webui.models.users import UserModel, Users
-from open_webui.models.chats import Chats
+from starlette.responses import Response
 
 from open_webui.config import (
     LICENSE_KEY,
@@ -99,7 +37,6 @@ from open_webui.config import (
     OLLAMA_API_CONFIGS,
     # OpenAI
     ENABLE_OPENAI_API,
-    ONEDRIVE_CLIENT_ID,
     OPENAI_API_BASE_URLS,
     OPENAI_API_KEYS,
     OPENAI_API_CONFIGS,
@@ -167,19 +104,14 @@ from open_webui.config import (
     WEB_LOADER_ENGINE,
     WHISPER_MODEL,
     DEEPGRAM_API_KEY,
-    WHISPER_MODEL_AUTO_UPDATE,
-    WHISPER_MODEL_DIR,
     # Retrieval
     RAG_TEMPLATE,
-    DEFAULT_RAG_TEMPLATE,
     RAG_FULL_CONTEXT,
     BYPASS_EMBEDDING_AND_RETRIEVAL,
     RAG_EMBEDDING_MODEL,
     RAG_EMBEDDING_MODEL_AUTO_UPDATE,
-    RAG_EMBEDDING_MODEL_TRUST_REMOTE_CODE,
     RAG_RERANKING_MODEL,
     RAG_RERANKING_MODEL_AUTO_UPDATE,
-    RAG_RERANKING_MODEL_TRUST_REMOTE_CODE,
     RAG_EMBEDDING_ENGINE,
     RAG_EMBEDDING_BATCH_SIZE,
     RAG_RELEVANCE_THRESHOLD,
@@ -240,14 +172,11 @@ from open_webui.config import (
     GOOGLE_DRIVE_API_KEY,
     ONEDRIVE_CLIENT_ID,
     ENABLE_RAG_HYBRID_SEARCH,
-    ENABLE_RAG_LOCAL_WEB_FETCH,
     ENABLE_WEB_LOADER_SSL_VERIFICATION,
     ENABLE_GOOGLE_DRIVE_INTEGRATION,
     ENABLE_ONEDRIVE_INTEGRATION,
-    UPLOAD_DIR,
     # WebUI
     WEBUI_AUTH,
-    WEBUI_NAME,
     WEBUI_BANNERS,
     WEBHOOK_URL,
     ADMIN_EMAIL,
@@ -267,7 +196,6 @@ from open_webui.config import (
     DEFAULT_USER_ROLE,
     DEFAULT_PROMPT_SUGGESTIONS,
     DEFAULT_MODELS,
-    DEFAULT_ARENA_MODEL,
     MODEL_ORDER_LIST,
     EVALUATION_ARENA_MODELS,
     # WebUI (OAuth)
@@ -335,6 +263,7 @@ from open_webui.env import (
     SRC_LOG_LEVELS,
     VERSION,
     WEBUI_BUILD_HASH,
+    WEBUI_NAME,
     WEBUI_SECRET_KEY,
     WEBUI_SESSION_COOKIE_SAME_SITE,
     WEBUI_SESSION_COOKIE_SECURE,
@@ -347,21 +276,53 @@ from open_webui.env import (
     ENABLE_OTEL,
     EXTERNAL_PWA_MANIFEST_URL,
 )
-
-
-from open_webui.utils.models import (
-    get_all_models,
-    get_all_base_models,
-    check_model_access,
+from open_webui.internal.db import Session, engine
+from open_webui.models.chats import Chats
+from open_webui.models.functions import Functions
+from open_webui.models.models import Models
+from open_webui.models.users import Users
+from open_webui.routers import (
+    audio,
+    images,
+    ollama,
+    openai,
+    retrieval,
+    pipelines,
+    tasks,
+    auths,
+    channels,
+    chats,
+    folders,
+    configs,
+    groups,
+    files,
+    functions,
+    memories,
+    models,
+    knowledge,
+    prompts,
+    evaluations,
+    tools,
+    users,
+    utils,
 )
-from open_webui.utils.chat import (
-    generate_chat_completion as chat_completion_handler,
-    chat_completed as chat_completed_handler,
-    chat_action as chat_action_handler,
+from open_webui.routers.retrieval import (
+    get_embedding_function,
+    get_ef,
+    get_rf,
 )
-from open_webui.utils.middleware import process_chat_payload, process_chat_response
+from open_webui.socket.main import (
+    app as socket_app,
+    periodic_usage_pool_cleanup,
+)
+from open_webui.tasks import (
+    list_task_ids_by_chat_id,
+    stop_task,
+    list_tasks,
+)  # Import from tasks.py
+from open_webui.utils import logger
 from open_webui.utils.access_control import has_access
-
+from open_webui.utils.audit import AuditLevel, AuditLoggingMiddleware
 from open_webui.utils.auth import (
     get_license_data,
     get_http_authorization_cred,
@@ -369,17 +330,21 @@ from open_webui.utils.auth import (
     get_admin_user,
     get_verified_user,
 )
+from open_webui.utils.chat import (
+    generate_chat_completion as chat_completion_handler,
+    chat_completed as chat_completed_handler,
+    chat_action as chat_action_handler,
+)
+from open_webui.utils.logger import start_logger
+from open_webui.utils.middleware import process_chat_payload, process_chat_response
+from open_webui.utils.models import (
+    get_all_models,
+    get_all_base_models,
+    check_model_access,
+)
 from open_webui.utils.oauth import OAuthManager
-from open_webui.utils.security_headers import SecurityHeadersMiddleware
-
-from open_webui.tasks import (
-    list_task_ids_by_chat_id,
-    stop_task,
-    list_tasks,
-)  # Import from tasks.py
-
 from open_webui.utils.redis import get_sentinels_from_env
-
+from open_webui.utils.security_headers import SecurityHeadersMiddleware
 
 if SAFE_MODE:
     print("SAFE MODE ENABLED")

@@ -1,7 +1,6 @@
-import socketio
-import redis
-from redis import asyncio as aioredis
 from urllib.parse import urlparse
+
+import redis
 
 
 def parse_redis_service_url(redis_url):

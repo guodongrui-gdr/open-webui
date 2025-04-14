@@ -1,10 +1,26 @@
-import re
-import uuid
-import time
 import datetime
 import logging
-from aiohttp import ClientSession
+import re
+import time
+import uuid
+from ssl import CERT_REQUIRED, PROTOCOL_TLS
+from typing import Optional
 
+from aiohttp import ClientSession
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import RedirectResponse, Response
+from pydantic import BaseModel
+
+from open_webui.config import OPENID_PROVIDER_URL, ENABLE_OAUTH_SIGNUP, ENABLE_LDAP
+from open_webui.constants import ERROR_MESSAGES, WEBHOOK_MESSAGES
+from open_webui.env import (
+    WEBUI_AUTH,
+    WEBUI_AUTH_TRUSTED_EMAIL_HEADER,
+    WEBUI_AUTH_TRUSTED_NAME_HEADER,
+    WEBUI_AUTH_COOKIE_SAME_SITE,
+    WEBUI_AUTH_COOKIE_SECURE,
+    SRC_LOG_LEVELS,
+)
 from open_webui.models.auths import (
     AddUserForm,
     ApiKey,
@@ -19,21 +35,7 @@ from open_webui.models.auths import (
     UserResponse,
 )
 from open_webui.models.users import Users
-
-from open_webui.constants import ERROR_MESSAGES, WEBHOOK_MESSAGES
-from open_webui.env import (
-    WEBUI_AUTH,
-    WEBUI_AUTH_TRUSTED_EMAIL_HEADER,
-    WEBUI_AUTH_TRUSTED_NAME_HEADER,
-    WEBUI_AUTH_COOKIE_SAME_SITE,
-    WEBUI_AUTH_COOKIE_SECURE,
-    SRC_LOG_LEVELS,
-)
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import RedirectResponse, Response
-from open_webui.config import OPENID_PROVIDER_URL, ENABLE_OAUTH_SIGNUP, ENABLE_LDAP
-from pydantic import BaseModel
-from open_webui.utils.misc import parse_duration, validate_email_format
+from open_webui.utils.access_control import get_permissions
 from open_webui.utils.auth import (
     create_api_key,
     create_token,
@@ -42,12 +44,8 @@ from open_webui.utils.auth import (
     get_current_user,
     get_password_hash,
 )
+from open_webui.utils.misc import parse_duration, validate_email_format
 from open_webui.utils.webhook import post_webhook
-from open_webui.utils.access_control import get_permissions
-
-from typing import Optional, List
-
-from ssl import CERT_REQUIRED, PROTOCOL_TLS
 
 if ENABLE_LDAP.value:
     from ldap3 import Server, Connection, NONE, Tls
@@ -536,10 +534,10 @@ async def signup(request: Request, response: Response, form_data: SignupForm):
 @router.get("/signout")
 async def signout(request: Request, response: Response):
     response.delete_cookie("token")
-
+    
     if ENABLE_OAUTH_SIGNUP.value:
         oauth_id_token = request.cookies.get("oauth_id_token")
-        if oauth_id_token:
+        if oauth_id_token is not None and oauth_id_token.lower() != "none":
             try:
                 async with ClientSession() as session:
                     async with session.get(OPENID_PROVIDER_URL.value) as resp:

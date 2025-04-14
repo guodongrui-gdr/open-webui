@@ -2,8 +2,9 @@ import logging
 from typing import Optional
 
 import requests
-from open_webui.retrieval.web.main import SearchResult
+
 from open_webui.env import SRC_LOG_LEVELS
+from open_webui.retrieval.web.main import SearchResult
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["RAG"])

@@ -1,10 +1,9 @@
-from typing import Optional, Union, List, Dict, Any
-from open_webui.models.users import Users, UserModel
-from open_webui.models.groups import Groups
-
+import json
+from typing import Optional, List, Dict, Any
 
 from open_webui.config import DEFAULT_USER_PERMISSIONS
-import json
+from open_webui.models.groups import Groups
+from open_webui.models.users import Users, UserModel
 
 
 def fill_missing_permissions(

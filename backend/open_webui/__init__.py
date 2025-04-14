@@ -2,10 +2,10 @@ import base64
 import os
 import random
 from pathlib import Path
+from typing import Optional
 
 import typer
 import uvicorn
-from typing import Optional
 from typing_extensions import Annotated
 
 app = typer.Typer()

@@ -2,9 +2,11 @@ import time
 import uuid
 from typing import Optional
 
-from open_webui.internal.db import Base, get_db
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import BigInteger, Column, String, Text
+
+from open_webui.internal.db import Base, get_db
+
 
 ####################
 # Memory DB Schema

@@ -1,8 +1,7 @@
-import validators
-
 from typing import Optional
 from urllib.parse import urlparse
 
+import validators
 from pydantic import BaseModel
 
 

@@ -6,12 +6,10 @@ Create Date: 2024-10-09 21:02:35.241684
 
 """
 
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.sql import table, select, update, column
+from alembic import op
 from sqlalchemy.engine.reflection import Inspector
-
-import json
+from sqlalchemy.sql import table, column
 
 revision = "1af9b942657b"
 down_revision = "242a2047eae0"

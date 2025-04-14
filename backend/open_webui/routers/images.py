@@ -5,11 +5,12 @@ import json
 import logging
 import mimetypes
 import re
-from pathlib import Path
 from typing import Optional
 
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
+from pydantic import BaseModel
+
 from open_webui.config import CACHE_DIR
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import ENABLE_FORWARD_USER_INFO_HEADERS, SRC_LOG_LEVELS
@@ -20,7 +21,6 @@ from open_webui.utils.images.comfyui import (
     ComfyUIWorkflow,
     comfyui_generate_image,
 )
-from pydantic import BaseModel
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["IMAGES"])

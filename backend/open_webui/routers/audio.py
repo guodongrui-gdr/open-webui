@@ -1,21 +1,16 @@
 import hashlib
 import json
 import logging
+import mimetypes
 import os
 import uuid
 from functools import lru_cache
-from pathlib import Path
-from pydub import AudioSegment
-from pydub.silence import split_on_silence
 
-import aiohttp
 import aiofiles
+import aiohttp
 import requests
-import mimetypes
-
 from fastapi import (
     Depends,
-    FastAPI,
     File,
     HTTPException,
     Request,
@@ -23,27 +18,22 @@ from fastapi import (
     status,
     APIRouter,
 )
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-
-from open_webui.utils.auth import get_admin_user, get_verified_user
 from open_webui.config import (
     WHISPER_MODEL_AUTO_UPDATE,
     WHISPER_MODEL_DIR,
     CACHE_DIR,
 )
-
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import (
     AIOHTTP_CLIENT_TIMEOUT,
-    ENV,
     SRC_LOG_LEVELS,
     DEVICE_TYPE,
     ENABLE_FORWARD_USER_INFO_HEADERS,
 )
-
+from open_webui.utils.auth import get_admin_user, get_verified_user
 
 router = APIRouter()
 

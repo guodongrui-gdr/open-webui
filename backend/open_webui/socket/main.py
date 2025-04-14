@@ -1,17 +1,9 @@
 import asyncio
-import socketio
 import logging
 import sys
 import time
-from redis import asyncio as aioredis
 
-from open_webui.models.users import Users, UserNameResponse
-from open_webui.models.channels import Channels
-from open_webui.models.chats import Chats
-from open_webui.utils.redis import (
-    get_sentinels_from_env,
-    get_sentinel_url_from_env,
-)
+import socketio
 
 from open_webui.env import (
     ENABLE_WEBSOCKET_SUPPORT,
@@ -21,14 +13,19 @@ from open_webui.env import (
     WEBSOCKET_SENTINEL_PORT,
     WEBSOCKET_SENTINEL_HOSTS,
 )
-from open_webui.utils.auth import decode_token
-from open_webui.socket.utils import RedisDict, RedisLock
-
 from open_webui.env import (
     GLOBAL_LOG_LEVEL,
     SRC_LOG_LEVELS,
 )
-
+from open_webui.models.channels import Channels
+from open_webui.models.chats import Chats
+from open_webui.models.users import Users, UserNameResponse
+from open_webui.socket.utils import RedisDict, RedisLock
+from open_webui.utils.auth import decode_token
+from open_webui.utils.redis import (
+    get_sentinels_from_env,
+    get_sentinel_url_from_env,
+)
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)

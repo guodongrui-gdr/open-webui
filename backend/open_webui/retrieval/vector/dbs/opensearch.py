@@ -1,8 +1,8 @@
-from opensearchpy import OpenSearch
-from opensearchpy.helpers import bulk
 from typing import Optional
 
-from open_webui.retrieval.vector.main import VectorItem, SearchResult, GetResult
+from opensearchpy import OpenSearch
+from opensearchpy.helpers import bulk
+
 from open_webui.config import (
     OPENSEARCH_URI,
     OPENSEARCH_SSL,
@@ -10,6 +10,7 @@ from open_webui.config import (
     OPENSEARCH_USERNAME,
     OPENSEARCH_PASSWORD,
 )
+from open_webui.retrieval.vector.main import VectorItem, SearchResult, GetResult
 
 
 class OpenSearchClient:

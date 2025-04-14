@@ -1,5 +1,7 @@
-from typing import Optional, List, Dict, Any
 import logging
+from typing import Optional, List, Dict, Any
+
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     cast,
     column,
@@ -13,19 +15,16 @@ from sqlalchemy import (
     Table,
     values,
 )
-from sqlalchemy.sql import true
-from sqlalchemy.pool import NullPool
-
-from sqlalchemy.orm import declarative_base, scoped_session, sessionmaker
 from sqlalchemy.dialects.postgresql import JSONB, array
-from pgvector.sqlalchemy import Vector
-from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.exc import NoSuchTableError
+from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import declarative_base, scoped_session, sessionmaker
+from sqlalchemy.pool import NullPool
+from sqlalchemy.sql import true
 
-from open_webui.retrieval.vector.main import VectorItem, SearchResult, GetResult
 from open_webui.config import PGVECTOR_DB_URL, PGVECTOR_INITIALIZE_MAX_VECTOR_LENGTH
-
 from open_webui.env import SRC_LOG_LEVELS
+from open_webui.retrieval.vector.main import VectorItem, SearchResult, GetResult
 
 VECTOR_LENGTH = PGVECTOR_INITIALIZE_MAX_VECTOR_LENGTH
 Base = declarative_base()

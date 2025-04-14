@@ -13,9 +13,6 @@ from fastapi import (
 )
 from starlette.responses import RedirectResponse
 
-from open_webui.models.auths import Auths
-from open_webui.models.users import Users
-from open_webui.models.groups import Groups, GroupModel, GroupUpdateForm
 from open_webui.config import (
     DEFAULT_USER_ROLE,
     ENABLE_OAUTH_SIGNUP,
@@ -36,16 +33,18 @@ from open_webui.config import (
     AppConfig,
 )
 from open_webui.constants import ERROR_MESSAGES, WEBHOOK_MESSAGES
+from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL
 from open_webui.env import (
     WEBUI_NAME,
     WEBUI_AUTH_COOKIE_SAME_SITE,
     WEBUI_AUTH_COOKIE_SECURE,
 )
-from open_webui.utils.misc import parse_duration
+from open_webui.models.auths import Auths
+from open_webui.models.groups import Groups, GroupModel, GroupUpdateForm
+from open_webui.models.users import Users
 from open_webui.utils.auth import get_password_hash, create_token
+from open_webui.utils.misc import parse_duration
 from open_webui.utils.webhook import post_webhook
-
-from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)

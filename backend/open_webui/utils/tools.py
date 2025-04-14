@@ -1,44 +1,32 @@
+import logging
+import asyncio
+import copy
 import inspect
 import logging
 import re
-import inspect
-import aiohttp
-import asyncio
-import yaml
-
-from pydantic import BaseModel
-from pydantic.fields import FieldInfo
+from functools import update_wrapper, partial
 from typing import (
     Any,
     Awaitable,
     Callable,
     get_type_hints,
-    get_args,
-    get_origin,
     Dict,
     List,
-    Tuple,
-    Union,
     Optional,
-    Type,
 )
-from functools import update_wrapper, partial
 
-
+import aiohttp
+import yaml
 from fastapi import Request
-from pydantic import BaseModel, Field, create_model
-
 from langchain_core.utils.function_calling import (
     convert_to_openai_function as convert_pydantic_model_to_openai_function_spec,
 )
+from pydantic import BaseModel, Field, create_model
 
-
+from open_webui.env import AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER_DATA
 from open_webui.models.tools import Tools
 from open_webui.models.users import UserModel
 from open_webui.utils.plugin import load_tool_module_by_id
-from open_webui.env import AIOHTTP_CLIENT_TIMEOUT_TOOL_SERVER_DATA
-
-import copy
 
 log = logging.getLogger(__name__)
 
