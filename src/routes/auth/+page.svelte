@@ -1,7 +1,7 @@
 <script>
 	import { toast } from 'svelte-sonner';
 
-	import { onMount, getContext } from 'svelte';
+	import { onMount, getContext, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
@@ -28,6 +28,12 @@
 
 	let ldapUsername = '';
 
+	const querystringValue = (key) => {
+		const querystring = window.location.search;
+		const urlParams = new URLSearchParams(querystring);
+		return urlParams.get(key);
+	};
+
 	const setSessionUser = async (sessionUser) => {
 		if (sessionUser) {
 			console.log(sessionUser);
@@ -35,11 +41,12 @@
 			if (sessionUser.token) {
 				localStorage.token = sessionUser.token;
 			}
-
 			$socket.emit('user-join', { auth: { token: sessionUser.token } });
 			await user.set(sessionUser);
 			await config.set(await getBackendConfig());
-			goto('/');
+
+			const redirectPath = querystringValue('redirect') || '/';
+			goto(redirectPath);
 		}
 	};
 
@@ -91,16 +98,13 @@
 		}
 		const params = new URLSearchParams(hash);
 		const token = params.get('token');
-		console.log('token',token,!token)
 		if (!token) {
 			return;
 		}
-
 		const sessionUser = await getSessionUser(token).catch((error) => {
 			toast.error(`${error}`);
 			return null;
 		});
-		console.log('sessionUser',sessionUser,!sessionUser)
 		if (!sessionUser) {
 			return;
 		}
@@ -109,6 +113,29 @@
 	};
 
 	let onboarding = false;
+
+	async function setLogoImage() {
+		await tick();
+		const logo = document.getElementById('logo');
+
+		if (logo) {
+			const isDarkMode = document.documentElement.classList.contains('dark');
+
+			if (isDarkMode) {
+				const darkImage = new Image();
+				darkImage.src = '/static/favicon-dark.png';
+
+				darkImage.onload = () => {
+					logo.src = '/static/favicon-dark.png';
+					logo.style.filter = ''; // Ensure no inversion is applied if favicon-dark.png exists
+				};
+
+				darkImage.onerror = () => {
+					logo.style.filter = 'invert(1)'; // Invert image if favicon-dark.png is missing
+				};
+			}
+		}
+	}
 
 	onMount(async () => {
 		if ($user !== undefined) {

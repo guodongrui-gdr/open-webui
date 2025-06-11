@@ -1,44 +1,62 @@
+import time
 import logging
-import asyncio
-import inspect
-import json
-import logging
-import random
 import sys
+
+from aiocache import cached
+from typing import Any, Optional
+import random
+import json
+import inspect
 import uuid
-from typing import Any
+import asyncio
 
-from fastapi import Request
-from starlette.responses import StreamingResponse
+from fastapi import Request, status
+from starlette.responses import Response, StreamingResponse, JSONResponse
 
-from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL, BYPASS_MODEL_ACCESS_CONTROL
-from open_webui.functions import generate_function_chat_completion
-from open_webui.models.functions import Functions
-from open_webui.routers.ollama import (
-    generate_chat_completion as generate_ollama_chat_completion,
-)
-from open_webui.routers.openai import (
-    generate_chat_completion as generate_openai_chat_completion,
-)
-from open_webui.routers.pipelines import (
-    process_pipeline_outlet_filter,
-)
+
+from open_webui.models.users import UserModel
+
 from open_webui.socket.main import (
     sio,
     get_event_call,
     get_event_emitter,
 )
-from open_webui.utils.filter import (
-    get_sorted_filter_ids,
-    process_filter_functions,
+from open_webui.functions import generate_function_chat_completion
+
+from open_webui.routers.openai import (
+    generate_chat_completion as generate_openai_chat_completion,
+)
+
+from open_webui.routers.ollama import (
+    generate_chat_completion as generate_ollama_chat_completion,
+)
+
+from open_webui.routers.pipelines import (
+    process_pipeline_inlet_filter,
+    process_pipeline_outlet_filter,
+)
+
+from open_webui.models.functions import Functions
+from open_webui.models.models import Models
+
+
+from open_webui.utils.plugin import (
+    load_function_module_by_id,
+    get_function_module_from_cache,
 )
 from open_webui.utils.models import get_all_models, check_model_access
 from open_webui.utils.payload import convert_payload_openai_to_ollama
-from open_webui.utils.plugin import load_function_module_by_id
 from open_webui.utils.response import (
     convert_response_ollama_to_openai,
     convert_streaming_response_ollama_to_openai,
 )
+from open_webui.utils.filter import (
+    get_sorted_filter_ids,
+    process_filter_functions,
+)
+
+from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL, BYPASS_MODEL_ACCESS_CONTROL
+
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
@@ -294,6 +312,7 @@ async def chat_completed(request: Request, form_data: dict, user: Any):
     metadata = {
         "chat_id": data["chat_id"],
         "message_id": data["id"],
+        "filter_ids": data.get("filter_ids", []),
         "session_id": data["session_id"],
         "user_id": user.id,
     }
@@ -301,12 +320,7 @@ async def chat_completed(request: Request, form_data: dict, user: Any):
     extra_params = {
         "__event_emitter__": get_event_emitter(metadata),
         "__event_call__": get_event_call(metadata),
-        "__user__": {
-            "id": user.id,
-            "email": user.email,
-            "name": user.name,
-            "role": user.role,
-        },
+        "__user__": user.model_dump() if isinstance(user, UserModel) else {},
         "__metadata__": metadata,
         "__request__": request,
         "__model__": model,
@@ -315,7 +329,9 @@ async def chat_completed(request: Request, form_data: dict, user: Any):
     try:
         filter_functions = [
             Functions.get_function_by_id(filter_id)
-            for filter_id in get_sorted_filter_ids(model)
+            for filter_id in get_sorted_filter_ids(
+                request, model, metadata.get("filter_ids", [])
+            )
         ]
 
         result, _ = await process_filter_functions(
@@ -374,11 +390,7 @@ async def chat_action(request: Request, action_id: str, form_data: dict, user: A
         }
     )
 
-    if action_id in request.app.state.FUNCTIONS:
-        function_module = request.app.state.FUNCTIONS[action_id]
-    else:
-        function_module, _, _ = load_function_module_by_id(action_id)
-        request.app.state.FUNCTIONS[action_id] = function_module
+    function_module, _, _ = get_function_module_from_cache(request, action_id)
 
     if hasattr(function_module, "valves") and hasattr(function_module, "Valves"):
         valves = Functions.get_function_valves_by_id(action_id)
@@ -407,12 +419,7 @@ async def chat_action(request: Request, action_id: str, form_data: dict, user: A
                     params[key] = value
 
             if "__user__" in sig.parameters:
-                __user__ = {
-                    "id": user.id,
-                    "email": user.email,
-                    "name": user.name,
-                    "role": user.role,
-                }
+                __user__ = (user.model_dump() if isinstance(user, UserModel) else {},)
 
                 try:
                     if hasattr(function_module, "UserValves"):

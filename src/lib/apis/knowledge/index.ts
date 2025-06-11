@@ -27,7 +27,7 @@ export const createNewKnowledge = async (
 		})
 		.catch((err) => {
 			error = err.detail;
-			console.log(err);
+			console.error(err);
 			return null;
 		});
 
@@ -58,7 +58,7 @@ export const getKnowledgeBases = async (token: string = '') => {
 		})
 		.catch((err) => {
 			error = err.detail;
-			console.log(err);
+			console.error(err);
 			return null;
 		});
 
@@ -89,7 +89,7 @@ export const getKnowledgeBaseList = async (token: string = '') => {
 		})
 		.catch((err) => {
 			error = err.detail;
-			console.log(err);
+			console.error(err);
 			return null;
 		});
 
@@ -121,7 +121,7 @@ export const getKnowledgeById = async (token: string, id: string) => {
 		.catch((err) => {
 			error = err.detail;
 
-			console.log(err);
+			console.error(err);
 			return null;
 		});
 
@@ -166,7 +166,7 @@ export const updateKnowledgeById = async (token: string, id: string, form: Knowl
 		.catch((err) => {
 			error = err.detail;
 
-			console.log(err);
+			console.error(err);
 			return null;
 		});
 
@@ -200,7 +200,7 @@ export const addFileToKnowledgeById = async (token: string, id: string, fileIds:
 		.catch((err) => {
 			error = err.detail;
 
-			console.log(err);
+			console.error(err);
 			return null;
 		});
 
@@ -235,7 +235,7 @@ export const updateFileFromKnowledgeById = async (token: string, id: string, fil
 		.catch((err) => {
 			error = err.detail;
 
-			console.log(err);
+			console.error(err);
 			return null;
 		});
 
@@ -270,7 +270,7 @@ export const removeFileFromKnowledgeById = async (token: string, id: string, fil
 		.catch((err) => {
 			error = err.detail;
 
-			console.log(err);
+			console.error(err);
 			return null;
 		});
 
@@ -302,7 +302,7 @@ export const resetKnowledgeById = async (token: string, id: string) => {
 		.catch((err) => {
 			error = err.detail;
 
-			console.log(err);
+			console.error(err);
 			return null;
 		});
 
@@ -334,7 +334,7 @@ export const deleteKnowledgeById = async (token: string, id: string) => {
 		.catch((err) => {
 			error = err.detail;
 
-			console.log(err);
+			console.error(err);
 			return null;
 		});
 
@@ -362,7 +362,7 @@ export const reindexKnowledgeFiles = async (token: string) => {
 		})
 		.catch((err) => {
 			error = err.detail;
-			console.log(err);
+			console.error(err);
 			return null;
 		});
 

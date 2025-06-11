@@ -1,24 +1,47 @@
-import asyncio
-import inspect
-import json
 import logging
 import sys
-from typing import AsyncGenerator, Generator, Iterator
+import inspect
+import json
+import asyncio
 
-from fastapi import (
-    Request,
-)
 from pydantic import BaseModel
-from starlette.responses import StreamingResponse
+from typing import AsyncGenerator, Generator, Iterator
+from fastapi import (
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
+from starlette.responses import Response, StreamingResponse
 
-from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL
-from open_webui.models.functions import Functions
-from open_webui.models.models import Models
+
 from open_webui.socket.main import (
     get_event_call,
     get_event_emitter,
 )
+
+
+from open_webui.models.users import UserModel
+from open_webui.models.functions import Functions
+from open_webui.models.models import Models
+
+from open_webui.utils.plugin import (
+    load_function_module_by_id,
+    get_function_module_from_cache,
+)
+from open_webui.utils.tools import get_tools
+from open_webui.utils.access_control import has_access
+
+from open_webui.env import SRC_LOG_LEVELS, GLOBAL_LOG_LEVEL
+
 from open_webui.utils.misc import (
+    add_or_update_system_message,
+    get_last_user_message,
+    prepend_to_first_user_message_content,
     openai_chat_chunk_message_template,
     openai_chat_completion_message_template,
 )
@@ -26,8 +49,7 @@ from open_webui.utils.payload import (
     apply_model_params_to_body_openai,
     apply_model_system_prompt_to_body,
 )
-from open_webui.utils.plugin import load_function_module_by_id
-from open_webui.utils.tools import get_tools
+
 
 logging.basicConfig(stream=sys.stdout, level=GLOBAL_LOG_LEVEL)
 log = logging.getLogger(__name__)
@@ -35,12 +57,7 @@ log.setLevel(SRC_LOG_LEVELS["MAIN"])
 
 
 def get_function_module_by_id(request: Request, pipe_id: str):
-    # Check if function is already loaded
-    if pipe_id not in request.app.state.FUNCTIONS:
-        function_module, _, _ = load_function_module_by_id(pipe_id)
-        request.app.state.FUNCTIONS[pipe_id] = function_module
-    else:
-        function_module = request.app.state.FUNCTIONS[pipe_id]
+    function_module, _, _ = get_function_module_from_cache(request, pipe_id)
 
     if hasattr(function_module, "valves") and hasattr(function_module, "Valves"):
         valves = Functions.get_function_valves_by_id(pipe_id)
@@ -211,12 +228,7 @@ async def generate_function_chat_completion(
         "__task__": __task__,
         "__task_body__": __task_body__,
         "__files__": files,
-        "__user__": {
-            "id": user.id,
-            "email": user.email,
-            "name": user.name,
-            "role": user.role,
-        },
+        "__user__": user.model_dump() if isinstance(user, UserModel) else {},
         "__metadata__": metadata,
         "__request__": request,
     }
@@ -237,8 +249,13 @@ async def generate_function_chat_completion(
             form_data["model"] = model_info.base_model_id
 
         params = model_info.params.model_dump()
-        form_data = apply_model_params_to_body_openai(params, form_data)
-        form_data = apply_model_system_prompt_to_body(params, form_data, metadata, user)
+
+        if params:
+            system = params.pop("system", None)
+            form_data = apply_model_params_to_body_openai(params, form_data)
+            form_data = apply_model_system_prompt_to_body(
+                system, form_data, metadata, user
+            )
 
     pipe_id = get_pipe_id(form_data)
     function_module = get_function_module_by_id(request, pipe_id)
