@@ -1031,7 +1031,7 @@ async def chat_completion(
 ):
     if not request.app.state.MODELS:
         await get_all_models(request, user=user)
-
+    logging.info(f'可用模型: {request.app.state.MODELS.keys()}')
     model_item = form_data.pop("model_item", {})
     tasks = form_data.pop("background_tasks", None)
 

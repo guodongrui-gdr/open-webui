@@ -810,7 +810,6 @@ def save_docs_to_vector_db(
             collection_name=collection_name,
             filter={"hash": metadata["hash"]},
         )
-
         if result is not None:
             existing_doc_ids = result.ids[0]
             if existing_doc_ids:
@@ -1762,42 +1761,24 @@ def process_files_batch(
             hash = calculate_sha256_string(text_content)
             Files.update_file_hash_by_id(file.id, hash)
             Files.update_file_data_by_id(file.id, {"content": text_content})
-
-            all_docs.extend(docs)
-            results.append(BatchProcessFilesResult(file_id=file.id, status="prepared"))
+            
+            save_docs_to_vector_db(
+                request=request,
+                docs=docs,
+                metadata={
+                        "file_id": file.id,
+                        "name": file.filename,
+                        "hash": hash,
+                    },
+                collection_name = collection_name,
+                add = True,
+                user = user,
+            )
+            results.append(BatchProcessFilesResult(file_id=file.id, status="completed"))
 
         except Exception as e:
             log.error(f"process_files_batch: Error processing file {file.id}: {str(e)}")
             errors.append(
                 BatchProcessFilesResult(file_id=file.id, status="failed", error=str(e))
             )
-
-    # Save all documents in one batch
-    if all_docs:
-        try:
-            save_docs_to_vector_db(
-                request=request,
-                docs=all_docs,
-                collection_name=collection_name,
-                add=True,
-                user=user,
-            )
-
-            # Update all files with collection name
-            for result in results:
-                Files.update_file_metadata_by_id(
-                    result.file_id, {"collection_name": collection_name}
-                )
-                result.status = "completed"
-
-        except Exception as e:
-            log.error(
-                f"process_files_batch: Error saving documents to vector DB: {str(e)}"
-            )
-            for result in results:
-                result.status = "failed"
-                errors.append(
-                    BatchProcessFilesResult(file_id=result.file_id, error=str(e))
-                )
-
     return BatchProcessFilesResponse(results=results, errors=errors)

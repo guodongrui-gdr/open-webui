@@ -145,7 +145,7 @@ async def create_new_knowledge(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=ERROR_MESSAGES.UNAUTHORIZED,
         )
-
+    log.info(f"Creating new knowledge: {form_data}")
     knowledge = Knowledges.insert_new_knowledge(user.id, form_data)
 
     if knowledge:
@@ -163,7 +163,7 @@ async def create_new_knowledge(
 
 
 @router.post("/reindex", response_model=bool)
-async def reindex_knowledge_files(request: Request, user=Depends(get_verified_user)):
+def reindex_knowledge_files(request: Request, user=Depends(get_verified_user)):
     if user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -175,51 +175,52 @@ async def reindex_knowledge_files(request: Request, user=Depends(get_verified_us
     log.info(f"Starting reindexing for {len(knowledge_bases)} knowledge bases")
 
     for knowledge_base in knowledge_bases:
-        try:
-            files = Files.get_files_by_ids(knowledge_base.data.get("file_ids", []))
-
+        if knowledge_base.data:
             try:
-                if VECTOR_DB_CLIENT.has_collection(collection_name=knowledge_base.id):
-                    VECTOR_DB_CLIENT.delete_collection(
-                        collection_name=knowledge_base.id
+                files = Files.get_files_by_ids(knowledge_base.data.get("file_ids", []))
+    
+                try:
+                    if VECTOR_DB_CLIENT.has_collection(collection_name=knowledge_base.id):
+                        VECTOR_DB_CLIENT.delete_collection(
+                            collection_name=knowledge_base.id
+                        )
+                except Exception as e:
+                    log.error(f"Error deleting collection {knowledge_base.id}: {str(e)}")
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=f"Error deleting vector DB collection",
                     )
+    
+                failed_files = []
+                for file in files:
+                    try:
+                        process_file(
+                            request,
+                            ProcessFileForm(
+                                file_id=file.id, collection_name=knowledge_base.id
+                            ),
+                            user=user,
+                        )
+                    except Exception as e:
+                        log.error(
+                            f"Error processing file {file.filename} (ID: {file.id}): {str(e)}"
+                        )
+                        failed_files.append({"file_id": file.id, "error": str(e)})
+                        continue
+    
             except Exception as e:
-                log.error(f"Error deleting collection {knowledge_base.id}: {str(e)}")
+                log.error(f"Error processing knowledge base {knowledge_base.id}: {str(e)}")
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Error deleting vector DB collection",
+                    detail=f"Error processing knowledge base",
                 )
-
-            failed_files = []
-            for file in files:
-                try:
-                    process_file(
-                        request,
-                        ProcessFileForm(
-                            file_id=file.id, collection_name=knowledge_base.id
-                        ),
-                        user=user,
-                    )
-                except Exception as e:
-                    log.error(
-                        f"Error processing file {file.filename} (ID: {file.id}): {str(e)}"
-                    )
-                    failed_files.append({"file_id": file.id, "error": str(e)})
-                    continue
-
-        except Exception as e:
-            log.error(f"Error processing knowledge base {knowledge_base.id}: {str(e)}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error processing knowledge base",
-            )
-
-        if failed_files:
-            log.warning(
-                f"Failed to process {len(failed_files)} files in knowledge base {knowledge_base.id}"
-            )
-            for failed in failed_files:
-                log.warning(f"File ID: {failed['file_id']}, Error: {failed['error']}")
+    
+            if failed_files:
+                log.warning(
+                    f"Failed to process {len(failed_files)} files in knowledge base {knowledge_base.id}"
+                )
+                for failed in failed_files:
+                    log.warning(f"File ID: {failed['file_id']}, Error: {failed['error']}")
 
     log.info("Reindexing completed successfully")
     return True
@@ -314,7 +315,7 @@ class KnowledgeFileIdForm(BaseModel):
 
 
 @router.post("/{id}/file/add", response_model=Optional[KnowledgeFilesResponse])
-def add_file_to_knowledge_by_id(
+async def add_file_to_knowledge_by_id(
     request: Request,
     id: str,
     form_data: KnowledgeFileIdForm,
@@ -728,13 +729,11 @@ def add_files_to_knowledge_batch(
     # If there were any errors, include them in the response
     if result.errors:
         error_details = [f"{err.file_id}: {err.error}" for err in result.errors]
-        return KnowledgeFilesResponse(
+        return KnowledgeFilesResponse(**{
             **knowledge.model_dump(),
-            files=Files.get_files_by_ids(existing_file_ids),
-            warnings={
-                "message": "Some files failed to process",
-                "errors": error_details,
-            },
+            "files":Files.get_files_by_ids(existing_file_ids),
+            "detail": error_details
+        }
         )
 
     return KnowledgeFilesResponse(

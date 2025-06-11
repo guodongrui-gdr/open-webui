@@ -18,7 +18,7 @@ from fastapi import (
     Request,
     UploadFile,
     status,
-    Query,
+    Query, Body,
 )
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
@@ -316,7 +316,7 @@ class ContentForm(BaseModel):
 
 
 @router.post("/{id}/data/content/update")
-async def update_file_data_content_by_id(
+def update_file_data_content_by_id(
     request: Request, id: str, form_data: ContentForm, user=Depends(get_verified_user)
 ):
     file = Files.get_file_by_id(id)
@@ -571,17 +571,13 @@ async def delete_file_by_id(id: str, user=Depends(get_verified_user)):
         )
 
 @router.post("/feishu")
-async def upload_from_feishu(
+def upload_from_feishu(
         request: Request,
+        feishu_doc_url: str = Body(...),
         user=Depends(get_verified_user),
         file_metadata: dict = {},
 ):
     try:
-        request_data = await request.body()
-        request_data = request_data.decode("utf-8")
-        log.info(f"request_data: {request_data}")
-        request_data = json.loads(request_data)
-        feishu_doc_url = request_data.get("feishu_doc_url", "")
         tenant_access_token = get_tenant_access_token()
         log.info(f"feishu_doc_url: {feishu_doc_url}")
         if not feishu_doc_url:
@@ -688,7 +684,7 @@ async def upload_from_feishu(
                     }
                 ),
             )
-            
+
             # 后续处理
             try:
                 process_file(request, ProcessFileForm(file_id=file_id), user=user)
@@ -698,18 +694,15 @@ async def upload_from_feishu(
                 file_item = FileModelResponse(
                     **{
                         **file_item.model_dump(),
-                        "error": str(e.detail) if hasattr(e, "detail") else str(e),
+                        "detail": str(e.detail) if hasattr(e, "detail") else str(e),
                     }
                 )
     
             return_file_items.append(file_item)
         return return_file_items
     
-    except HTTPException as he:
-        raise he
+    # except HTTPException as he:
+    #     raise he
     except Exception as e:
         log.exception(e)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=ERROR_MESSAGES.DEFAULT(e),
-        )
+        raise e

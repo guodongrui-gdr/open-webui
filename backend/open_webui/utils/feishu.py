@@ -46,6 +46,8 @@ def extract_doc_info(url: str) -> Tuple[str, str]:
     print(parts)
     doc_type = parts[-2]
     doc_token = parts[-1]
+    if "?" in doc_token:
+        doc_token = doc_token.split('?')[0]
     if doc_type == 'wiki': # 调用获取知识空间节点信息接口获取文档token和文档类型
         return get_wiki_info(doc_token)
     elif doc_type == 'base': # 文档类型为多维表格
@@ -164,16 +166,15 @@ def _create_export_task(payload: dict, tenant_access_token: str = None) -> str:
         "Content-Type": "application/json"
     }
     response = requests.post(url, json=payload, headers=headers)
-    if response.status_code == 200:
-        data = response.json()
-        if data['code'] == 0:
-            return data['data']['ticket']
-        else:
-            log.error(f"创建导出文档任务失败: {data['msg']}")
-            raise HTTPException(500, detail=data['msg'])
+    data = response.json()
+    if data['code'] == 0:
+        return data['data']['ticket']
+    elif data["code"] == 1069902: # 无权限
+        raise HTTPException(401, detail="文档未授权,请将文档链接分享范围设置为凡岛")
     else:
-        log.error(f"创建导出文档任务失败: {response.text}")
-        raise HTTPException(500, detail=response.text)
+        log.error(f"创建导出文档任务失败: {data['msg']}")
+        raise HTTPException(500, detail=data['msg'])
+
 
 
 def create_export_task(doc_token: str, file_type: str, tenant_access_token: str = None) -> List[str]:
@@ -203,8 +204,9 @@ def create_export_task(doc_token: str, file_type: str, tenant_access_token: str 
         for bitable_id in bitable_ids:
             data["sub_id"] = bitable_id
             result.append(_create_export_task(payload=data, tenant_access_token=tenant_access_token))
-    elif file_type == "sheet":
+    elif file_type == "sheet" or file_type == "sheets":
         data["file_extension"] = "csv"
+        data["type"] = "sheet"
         sheet_ids: List[str] = get_sheet_token(doc_token, tenant_access_token)
         for sheet_id in sheet_ids:
             data["sub_id"] = sheet_id

@@ -55,7 +55,7 @@ class Knowledge(Base):
 
 
 class KnowledgeModel(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, extra="allow")
 
     id: str
     user_id: str
