@@ -18,7 +18,12 @@
 		settings
 	} from '$lib/stores';
 
-	import { updateFileDataContentById, uploadFile, deleteFileById,uploadFeiShuFile } from '$lib/apis/files';
+	import {
+		updateFileDataContentById,
+		uploadFile,
+		deleteFileById,
+		getFileById
+	} from '$lib/apis/files';
 	import {
 		addFileToKnowledgeById,
 		getKnowledgeById,
@@ -44,7 +49,7 @@
 	import ChevronLeft from '$lib/components/icons/ChevronLeft.svelte';
 	import LockClosed from '$lib/components/icons/LockClosed.svelte';
 	import AccessControlModal from '../common/AccessControlModal.svelte';
-	import Modal from '$lib/components/common/Modal.svelte';
+	import Search from '$lib/components/icons/Search.svelte';
 
 	let largeScreen = true;
 
@@ -71,8 +76,6 @@
 	let showAccessControlModal = false;
 
 	let inputFiles = null;
-	let inputFilesType = null; // 普通文件、飞书文件
-	let flyingBookModal = false;
 
 	let filteredItems = [];
 	$: if (knowledge && knowledge.files) {
@@ -84,8 +87,8 @@
 	$: if (fuse) {
 		filteredItems = query
 			? fuse.search(query).map((e) => {
-				return e.item;
-			})
+					return e.item;
+				})
 			: (knowledge?.files ?? []);
 	}
 
@@ -120,146 +123,81 @@
 		return file;
 	};
 
-	const uploadFileHandler = async (files) => {
-		try {
-			// 预处理：过滤无效文件并给出即时反馈
-			const validFiles = files.filter(file => {
-				// 空文件检查
-				if (file.size === 0) {
-					toast.error($i18n.t('You cannot upload an empty file.'));
-					return false;
-				}
+	const uploadFileHandler = async (file) => {
+		console.log(file);
 
-				// 文件大小检查
-				const maxSizeMB = $config?.file?.max_size ?? 0;
-				if (maxSizeMB > 0 && file.size > maxSizeMB * 1024 * 1024) {
-					console.log('File exceeds max size limit:', {
-						fileSize: file.size,
-						maxSize: maxSizeMB * 1024 * 1024
-					});
-					toast.error(
-						$i18n.t(`File size should not exceed {{maxSize}} MB.`, {
-							maxSize: maxSizeMB
-						})
-					);
-					return false;
-				}
-				return true;
+		const tempItemId = uuidv4();
+		const fileItem = {
+			type: 'file',
+			file: '',
+			id: null,
+			url: '',
+			name: file.name,
+			size: file.size,
+			status: 'uploading',
+			error: '',
+			itemId: tempItemId
+		};
+
+		if (fileItem.size == 0) {
+			toast.error($i18n.t('You cannot upload an empty file.'));
+			return null;
+		}
+
+		if (
+			($config?.file?.max_size ?? null) !== null &&
+			file.size > ($config?.file?.max_size ?? 0) * 1024 * 1024
+		) {
+			console.log('File exceeds max size limit:', {
+				fileSize: file.size,
+				maxSize: ($config?.file?.max_size ?? 0) * 1024 * 1024
+			});
+			toast.error(
+				$i18n.t(`File size should not exceed {{maxSize}} MB.`, {
+					maxSize: $config?.file?.max_size
+				})
+			);
+			return;
+		}
+
+		knowledge.files = [...(knowledge.files ?? []), fileItem];
+
+		try {
+			// If the file is an audio file, provide the language for STT.
+			let metadata = null;
+			if (
+				(file.type.startsWith('audio/') || file.type.startsWith('video/')) &&
+				$settings?.audio?.stt?.language
+			) {
+				metadata = {
+					language: $settings?.audio?.stt?.language
+				};
+			}
+
+			const uploadedFile = await uploadFile(localStorage.token, file, metadata).catch((e) => {
+				toast.error(`${e}`);
+				return null;
 			});
 
-			if (validFiles.length === 0) return;
+			if (uploadedFile) {
+				console.log(uploadedFile);
+				knowledge.files = knowledge.files.map((item) => {
+					if (item.itemId === tempItemId) {
+						item.id = uploadedFile.id;
+					}
 
-			// 创建临时状态（仅限有效文件）
-			const tempItems = validFiles.map(file => ({
-				file,
-				tempId: uuidv4(),
-				status: 'pending',
-				name: file.name,
-				size: file.size,
-				error: null
-			}));
-
-			// 更新知识库文件列表
-			knowledge.files = [
-				...(knowledge.files ?? []),
-				...tempItems.map(item => ({
-					id: null,
-					tempId: item.tempId,
-					name: item.file.name,
-					size: item.file.size,
-					status: item.status,
-					error: null
-				}))
-			];
-
-			// 上传流程
-			const uploadedIds = [];
-			const uploadErrors = [];
-
-			for (const item of tempItems) {
-				try {
-					updateFileStatus(item.tempId, 'uploading');
-
-					const uploadedFile = await uploadFile(localStorage.token, item.file);
-					uploadedIds.push(uploadedFile.id);
-
-					// 清理临时ID并设置正式ID
-					knowledge.files = knowledge.files.map(f =>
-						f.tempId === item.tempId
-							? { ...f, id: uploadedFile.id, status: 'completed', tempId: undefined }
-							: f
-					);
-				} catch (e) {
-					const errorMsg = e.response?.data?.message || e.message;
-					uploadErrors.push(errorMsg);
-					knowledge.files = knowledge.files.filter(f =>
-						f.tempId !== item.tempId // 直接过滤掉当前失败的条目
-					);
-				}
+					// Remove temporary item id
+					delete item.itemId;
+					return item;
+				});
+				await addFileHandler(uploadedFile.id);
+			} else {
+				toast.error($i18n.t('Failed to upload file.'));
 			}
-
-			// 关联知识库
-			let result = null;
-			let associationError = null;
-			if (uploadedIds.length > 0) {
-				try {
-					result = await addFileToKnowledgeById(localStorage.token, id, uploadedIds);
-				} catch (e) {
-					// 提取后端返回的详细错误信息
-					associationError = e.response?.data?.detail
-						? e.response.data.detail // 直接使用detail数组
-						: e.message;
-					console.error('File association failed:', e);
-					knowledge.files = knowledge.files.filter(
-						f => !uploadedIds.includes(f.id) // 通过正式ID过滤
-					);
-				}
-			}
-			// 提取result的detail字段
-			const resultDetail = result?.detail;
-			if (resultDetail) {
-				// 处理数组或字符串两种格式
-				const errorList = Array.isArray(resultDetail)
-					? resultDetail.join('\n')
-					: resultDetail;
-				toast.error($i18n.t('Files uploaded but linking failed:\n{{reason}}', {
-					reason: errorList
-				}));
-				knowledge.files = knowledge.files.filter(
-					f => !uploadedIds.includes(f.id)
-				);
-			}
-			// 最终状态提示（适配新错误格式）
-			if (associationError) {
-				// 处理数组或字符串两种格式
-				const errorList = Array.isArray(associationError)
-					? associationError.join('\n')
-					: associationError;
-				toast.error($i18n.t('Files uploaded but linking failed:\n{{reason}}', {
-					reason: errorList
-				}));
-			}
-
-			if (!associationError && !resultDetail && uploadErrors.length === 0) {
-				toast.success($i18n.t('All files uploaded successfully'));
-			}
-
 		} catch (e) {
-			console.error('Unexpected error:', e);
-			toast.error($i18n.t('Upload process error: {{reason}}', {
-				reason: e.message || 'Unknown error'
-			}));
+			toast.error(`${e}`);
 		}
 	};
-
-	// 辅助函数示例（需根据实际数据结构调整）
-	function updateFileStatus(tempId, status, error = null) {
-		knowledge.files = knowledge.files.map(file =>
-			file.tempId === tempId
-				? { ...file, status, ...(error && { error }) }
-				: file
-		);
-	}
 
 	const uploadDirectoryHandler = async () => {
 		// Check if File System Access API is supported
@@ -286,49 +224,66 @@
 	// Modern browsers implementation using File System Access API
 	const handleModernBrowserUpload = async () => {
 		const dirHandle = await window.showDirectoryPicker();
-		const files = [];
+		let totalFiles = 0;
+		let uploadedFiles = 0;
 
-		// 递归收集所有文件到数组
-		async function collectFiles(dirHandle, path = '') {
+		// Function to update the UI with the progress
+		const updateProgress = () => {
+			const percentage = (uploadedFiles / totalFiles) * 100;
+			toast.info(`Upload Progress: ${uploadedFiles}/${totalFiles} (${percentage.toFixed(2)}%)`);
+		};
+
+		// Recursive function to count all files excluding hidden ones
+		async function countFiles(dirHandle) {
 			for await (const entry of dirHandle.values()) {
-				// 跳过隐藏文件和目录
+				// Skip hidden files and directories
+				if (entry.name.startsWith('.')) continue;
+
+				if (entry.kind === 'file') {
+					totalFiles++;
+				} else if (entry.kind === 'directory') {
+					// Only process non-hidden directories
+					if (!entry.name.startsWith('.')) {
+						await countFiles(entry);
+					}
+				}
+			}
+		}
+
+		// Recursive function to process directories excluding hidden files and folders
+		async function processDirectory(dirHandle, path = '') {
+			for await (const entry of dirHandle.values()) {
+				// Skip hidden files and directories
 				if (entry.name.startsWith('.')) continue;
 
 				const entryPath = path ? `${path}/${entry.name}` : entry.name;
 
-				// 跳过包含隐藏文件夹的路径
+				// Skip if the path contains any hidden folders
 				if (hasHiddenFolder(entryPath)) continue;
 
 				if (entry.kind === 'file') {
 					const file = await entry.getFile();
 					const fileWithPath = new File([file], entryPath, { type: file.type });
-					files.push(fileWithPath);
+
+					await uploadFileHandler(fileWithPath);
+					uploadedFiles++;
+					updateProgress();
 				} else if (entry.kind === 'directory') {
-					await collectFiles(entry, entryPath);
+					// Only process non-hidden directories
+					if (!entry.name.startsWith('.')) {
+						await processDirectory(entry, entryPath);
+					}
 				}
 			}
 		}
 
-		await collectFiles(dirHandle);
-
-		const totalFiles = files.length;
-		let uploadedFiles = 0;
-
-		const updateProgress = () => {
-			const percentage = (uploadedFiles / totalFiles) * 100;
-			toast.info(`上传进度: ${uploadedFiles}/${totalFiles} (${percentage.toFixed(2)}%)`);
-		};
+		await countFiles(dirHandle);
+		updateProgress();
 
 		if (totalFiles > 0) {
-			// 单次批量上传所有文件
-			await uploadFileHandler(files);  // 直接传递整个文件数组
-
-			// 更新最终进度
-			uploadedFiles = totalFiles;
-			updateProgress();
-			toast.success('所有文件上传完成！');
+			await processDirectory(dirHandle);
 		} else {
-			console.log('没有需要上传的文件');
+			console.log('No files to upload.');
 		}
 	};
 
@@ -372,7 +327,7 @@
 							const relativePath = file.webkitRelativePath || file.name;
 							const fileWithPath = new File([file], relativePath, { type: file.type });
 
-							await uploadFileHandler([fileWithPath]);
+							await uploadFileHandler(fileWithPath);
 							uploadedFiles++;
 							updateProgress();
 						}
@@ -426,8 +381,7 @@
 	};
 
 	const addFileHandler = async (fileId) => {
-		// return new Promise(async resolve => {
-		const updatedKnowledge = await addFileToKnowledgeById(localStorage.token, id, [fileId]).catch(
+		const updatedKnowledge = await addFileToKnowledgeById(localStorage.token, id, fileId).catch(
 			(e) => {
 				toast.error(`${e}`);
 				return null;
@@ -441,67 +395,7 @@
 			toast.error($i18n.t('Failed to add file.'));
 			knowledge.files = knowledge.files.filter((file) => file.id !== fileId);
 		}
-		// resolve()
-		// })
-
 	};
-
-	const uploadFeiFileHandler = async () => {
-		try {
-			const flyingBookEle = document.getElementById('flyingBook-input');
-			const flyingBookBtnEle = document.getElementById('flyingBook-button');
-			let feishu_doc_url = flyingBookEle.value;
-			console.log('feishu_doc_url',feishu_doc_url)
-			const tempItemId = uuidv4();
-			if(['',null,undefined].includes(feishu_doc_url)) {
-				return toast.error(`请填写飞书链接`);
-			}
-			if(feishu_doc_url.includes('文件上传中')) return
-			flyingBookBtnEle.innerHTML  = '文件上传中~'
-			uploadFeiShuFile(localStorage.token,feishu_doc_url).then(async uploadedFile => {
-				console.log('响应数据:', uploadedFile);
-				console.log('uploadedFile',uploadedFile)
-				if (uploadedFile) {
-					console.log(uploadedFile);
-					let len = uploadedFile.length
-					for (let i = 0; i < uploadedFile.length; i++) {
-						let e = uploadedFile[i]
-						if('detail' in e) {
-							flyingBookBtnEle.innerHTML  = '上传文件'
-							toast.error('文件上传失败');
-						} else {
-							knowledge.files = knowledge.files.map((item) => {
-								if (item.itemId === tempItemId) {
-									item.id = e.id;
-								}
-								// Remove temporary item id
-								delete item.itemId;
-								return item;
-							});
-							const res = await addFileHandler(e.id)
-							console.log('res',res,len,uploadedFile.length)
-							if(len == uploadedFile.length) {
-								flyingBookEle.value = ''
-								flyingBookBtnEle.innerHTML  = '上传文件'
-								flyingBookModal = false
-							}
-							len++
-						}
-					}
-
-				} else {
-					toast.error($i18n.t('Failed to upload file.'));
-				}
-			}).catch(error => {
-				flyingBookBtnEle.innerHTML  = '上传文件'
-				console.log('Error:', error.message);
-				toast.error(`${error.message}`);
-			});
-
-		} catch (e) {
-			toast.error(`${e}`);
-		}
-	}
 
 	const deleteFileHandler = async (fileId) => {
 		try {
@@ -624,14 +518,14 @@
 	const onDrop = async (e) => {
 		e.preventDefault();
 		dragged = false;
-		console.log('e.dataTransfer?.types',e.dataTransfer?.types)
+
 		if (e.dataTransfer?.types?.includes('Files')) {
 			if (e.dataTransfer?.files) {
 				const inputFiles = e.dataTransfer?.files;
 
 				if (inputFiles && inputFiles.length > 0) {
 					for (const file of inputFiles) {
-						await uploadFileHandler([file]);
+						await uploadFileHandler(file);
 					}
 				} else {
 					toast.error($i18n.t(`File not found.`));
@@ -750,7 +644,7 @@
 	bind:show={showAddTextContentModal}
 	on:submit={(e) => {
 		const file = createFileFromText(e.detail.name, e.detail.content);
-		uploadFileHandler([file]);
+		uploadFileHandler(file);
 	}}
 />
 
@@ -763,7 +657,7 @@
 	on:change={async () => {
 		if (inputFiles && inputFiles.length > 0) {
 			for (const file of inputFiles) {
-				await uploadFileHandler([file]);
+				await uploadFileHandler(file);
 			}
 
 			inputFiles = null;
@@ -777,23 +671,6 @@
 		}
 	}}
 />
-
-<!--飞书链接弹出窗-->
-<Modal size="md" bind:show={flyingBookModal}>
-	<div class=" flex  dark:text-gray-300 px-5 pt-4" style="padding: 15px">
-		<div style="display: flex;align-items: center">
-			<span>飞书链接:</span>
-			<input id="flyingBook-input" style="width: 350px;border: 1px solid #ccc;border-radius: 10px;margin-left: 15px;"/>
-		</div>
-
-		<button class="self-center" id="flyingBook-button"
-						style="background: #008ad3;color: #fff;padding: 5px 20px;border-radius: 10px;margin-left: 15px;"
-						on:click={() => {
-				uploadFeiFileHandler();
-			}}
-		> 点击上传 </button>
-	</div>
-</Modal>
 
 <div class="flex flex-col w-full translate-y-1" id="collection-container">
 	{#if id && knowledge}
@@ -985,18 +862,7 @@
 						<div class=" px-3">
 							<div class="flex mb-0.5">
 								<div class=" self-center ml-1 mr-3">
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										viewBox="0 0 20 20"
-										fill="currentColor"
-										class="w-4 h-4"
-									>
-										<path
-											fill-rule="evenodd"
-											d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
-											clip-rule="evenodd"
-										/>
-									</svg>
+									<Search />
 								</div>
 								<input
 									class=" w-full text-sm pr-4 py-1 rounded-r-xl outline-hidden bg-transparent"
@@ -1015,10 +881,8 @@
 												uploadDirectoryHandler();
 											} else if (e.detail.type === 'text') {
 												showAddTextContentModal = true;
-											} else if (e.detail.type === 'files')  { // 普通文件
+											} else {
 												document.getElementById('files-input').click();
-											} else if (e.detail.type === 'flying book file')  { // 飞书文件
-												flyingBookModal = true
 											}
 										}}
 										on:sync={(e) => {
@@ -1059,6 +923,6 @@
 			</div>
 		</div>
 	{:else}
-		<Spinner />
+		<Spinner className="size-5" />
 	{/if}
 </div>

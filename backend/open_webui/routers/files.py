@@ -1,13 +1,10 @@
 import logging
 import os
-import time
-import traceback
 import uuid
 import json
-from concurrent.futures import ThreadPoolExecutor
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional
 from urllib.parse import quote
 
 from fastapi import (
@@ -19,13 +16,12 @@ from fastapi import (
     Request,
     UploadFile,
     status,
-    Query, Body,
+    Query,
 )
 from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel
-
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import SRC_LOG_LEVELS
+from open_webui.retrieval.vector.factory import VECTOR_DB_CLIENT
 
 from open_webui.models.users import Users
 from open_webui.models.files import (
@@ -35,12 +31,13 @@ from open_webui.models.files import (
     Files,
 )
 from open_webui.models.knowledge import Knowledges
-from open_webui.routers.audio import transcribe
+
+from open_webui.routers.knowledge import get_knowledge, get_knowledge_list
 from open_webui.routers.retrieval import ProcessFileForm, process_file
+from open_webui.routers.audio import transcribe
 from open_webui.storage.provider import Storage
 from open_webui.utils.auth import get_admin_user, get_verified_user
-from open_webui.utils.feishu import extract_doc_info, create_export_task, get_export_file_token, \
-    get_tenant_access_token, download_file
+from pydantic import BaseModel
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["MODELS"])
@@ -159,9 +156,19 @@ def upload_file(
         if process:
             try:
                 if file.content_type:
-                    if file.content_type.startswith("audio/") or file.content_type in {
-                        "video/webm"
-                    }:
+                    stt_supported_content_types = getattr(
+                        request.app.state.config, "STT_SUPPORTED_CONTENT_TYPES", []
+                    )
+
+                    if any(
+                        fnmatch(file.content_type, content_type)
+                        for content_type in (
+                            stt_supported_content_types
+                            if stt_supported_content_types
+                            and any(t.strip() for t in stt_supported_content_types)
+                            else ["audio/*", "video/webm"]
+                        )
+                    ):
                         file_path = Storage.get_file(file_path)
                         result = transcribe(request, file_path, file_metadata)
 
@@ -280,6 +287,7 @@ async def delete_all_files(user=Depends(get_admin_user)):
     if result:
         try:
             Storage.delete_all_files()
+            VECTOR_DB_CLIENT.reset()
         except Exception as e:
             log.exception(e)
             log.error("Error deleting files")
@@ -597,12 +605,12 @@ async def delete_file_by_id(id: str, user=Depends(get_verified_user)):
         or user.role == "admin"
         or has_access_to_file(id, "write", user)
     ):
-        # We should add Chroma cleanup here
 
         result = Files.delete_file_by_id(id)
         if result:
             try:
                 Storage.delete_file(file.path)
+                VECTOR_DB_CLIENT.delete(collection_name=f"file-{id}")
             except Exception as e:
                 log.exception(e)
                 log.error("Error deleting files")
@@ -623,13 +631,17 @@ async def delete_file_by_id(id: str, user=Depends(get_verified_user)):
         )
 
 @router.post("/feishu")
-def upload_from_feishu(
+async def upload_from_feishu(
         request: Request,
-        feishu_doc_url: str = Body(...),
         user=Depends(get_verified_user),
         file_metadata: dict = {},
 ):
     try:
+        request_data = await request.body()
+        request_data = request_data.decode("utf-8")
+        log.info(f"request_data: {request_data}")
+        request_data = json.loads(request_data)
+        feishu_doc_url = request_data.get("feishu_doc_url", "")
         tenant_access_token = get_tenant_access_token()
         log.info(f"feishu_doc_url: {feishu_doc_url}")
         if not feishu_doc_url:
@@ -736,7 +748,7 @@ def upload_from_feishu(
                     }
                 ),
             )
-
+            
             # 后续处理
             try:
                 process_file(request, ProcessFileForm(file_id=file_id), user=user)
@@ -746,15 +758,18 @@ def upload_from_feishu(
                 file_item = FileModelResponse(
                     **{
                         **file_item.model_dump(),
-                        "detail": str(e.detail) if hasattr(e, "detail") else str(e),
+                        "error": str(e.detail) if hasattr(e, "detail") else str(e),
                     }
                 )
     
             return_file_items.append(file_item)
         return return_file_items
     
-    # except HTTPException as he:
-    #     raise he
+    except HTTPException as he:
+        raise he
     except Exception as e:
         log.exception(e)
-        raise e
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=ERROR_MESSAGES.DEFAULT(e),
+        )

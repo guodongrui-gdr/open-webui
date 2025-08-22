@@ -3,9 +3,6 @@ from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 import logging
 
-from open_webui.constants import ERROR_MESSAGES
-from open_webui.env import SRC_LOG_LEVELS
-from open_webui.models.files import Files, FileModel
 from open_webui.models.knowledge import (
     Knowledges,
     KnowledgeForm,
@@ -20,8 +17,16 @@ from open_webui.routers.retrieval import (
     process_files_batch,
     BatchProcessFilesForm,
 )
-from open_webui.utils.access_control import has_access, has_permission
+from open_webui.storage.provider import Storage
+
+from open_webui.constants import ERROR_MESSAGES
 from open_webui.utils.auth import get_verified_user
+from open_webui.utils.access_control import has_access, has_permission
+
+
+from open_webui.env import SRC_LOG_LEVELS
+from open_webui.models.models import Models, ModelForm
+
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["MODELS"])
@@ -162,7 +167,7 @@ async def create_new_knowledge(
 
 
 @router.post("/reindex", response_model=bool)
-def reindex_knowledge_files(request: Request, user=Depends(get_verified_user)):
+async def reindex_knowledge_files(request: Request, user=Depends(get_verified_user)):
     if user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -192,7 +197,7 @@ def reindex_knowledge_files(request: Request, user=Depends(get_verified_user)):
 
         try:
             file_ids = knowledge_base.data.get("file_ids", [])
-            files = Files.get_files_by_ids(file_ids)
+            files = Files.get_file_metadatas_by_ids(file_ids)
             try:
                 if VECTOR_DB_CLIENT.has_collection(collection_name=knowledge_base.id):
                     VECTOR_DB_CLIENT.delete_collection(
@@ -303,7 +308,7 @@ async def update_knowledge_by_id(
     knowledge = Knowledges.update_knowledge_by_id(id=id, form_data=form_data)
     if knowledge:
         file_ids = knowledge.data.get("file_ids", []) if knowledge.data else []
-        files = Files.get_files_by_ids(file_ids)
+        files = Files.get_file_metadatas_by_ids(file_ids)
 
         return KnowledgeFilesResponse(
             **knowledge.model_dump(),
@@ -326,7 +331,7 @@ class KnowledgeFileIdForm(BaseModel):
 
 
 @router.post("/{id}/file/add", response_model=Optional[KnowledgeFilesResponse])
-async def add_file_to_knowledge_by_id(
+def add_file_to_knowledge_by_id(
     request: Request,
     id: str,
     form_data: KnowledgeFileIdForm,

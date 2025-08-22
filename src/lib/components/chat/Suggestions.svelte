@@ -1,16 +1,16 @@
 <script lang="ts">
 	import Fuse from 'fuse.js';
 	import Bolt from '$lib/components/icons/Bolt.svelte';
-	import { onMount, getContext, createEventDispatcher } from 'svelte';
+	import { onMount, getContext } from 'svelte';
 	import { settings, WEBUI_NAME } from '$lib/stores';
 	import { WEBUI_VERSION } from '$lib/constants';
 
 	const i18n = getContext('i18n');
-	const dispatch = createEventDispatcher();
 
 	export let suggestionPrompts = [];
 	export let className = '';
 	export let inputValue = '';
+	export let onSelect = (e) => {};
 
 	let sortedPrompts = [];
 
@@ -71,26 +71,26 @@
 	{:else}
 		<!-- Keine Vorschläge -->
 
-		<div
-			class="flex w-full {$settings?.landingPageMode === 'chat'
-				? ' -mt-1'
-				: 'text-center items-center justify-center'}  self-start text-gray-600 dark:text-gray-400"
+		<!--<div
+			class="flex w-full text-center items-center justify-center self-start text-gray-400 dark:text-gray-600"
 		>
 			{$WEBUI_NAME} ‧ v{WEBUI_VERSION}
-		</div>
+		</div>-->
 	{/if}
 </div>
 
 <div class="h-40 w-full">
 	{#if filteredPrompts.length > 0}
-		<div class="max-h-40 overflow-auto scrollbar-none items-start {className}">
+		<div role="list" class="max-h-40 overflow-auto scrollbar-none items-start {className}">
 			{#each filteredPrompts as prompt, idx (prompt.id || prompt.content)}
+				<!-- svelte-ignore a11y-no-interactive-element-to-noninteractive-role -->
 				<button
+					role="listitem"
 					class="waterfall flex flex-col flex-1 shrink-0 w-full justify-between
 				       px-3 py-2 rounded-xl bg-transparent hover:bg-black/5
 				       dark:hover:bg-white/5 transition group"
 					style="animation-delay: {idx * 60}ms"
-					on:click={() => dispatch('select', prompt.content)}
+					on:click={() => onSelect({ type: 'prompt', data: prompt.content })}
 				>
 					<div class="flex flex-col text-left">
 						{#if prompt.title && prompt.title[0] !== ''}

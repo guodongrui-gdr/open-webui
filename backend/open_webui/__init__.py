@@ -90,14 +90,12 @@ def dev(
     port: int = 8080,
     reload: bool = True,
 ):
-    from open_webui.env import UVICORN_WORKERS
     uvicorn.run(
         "open_webui.main:app",
         host=host,
         port=port,
         reload=reload,
         forwarded_allow_ips="*",
-        workers=UVICORN_WORKERS,
     )
 
 
