@@ -1,9 +1,10 @@
-import json
-from typing import Optional, List, Dict, Any
+from typing import Optional, Union, List, Dict, Any
+from open_webui.models.users import Users, UserModel
+from open_webui.models.groups import Groups
+
 
 from open_webui.config import DEFAULT_USER_PERMISSIONS
-from open_webui.models.groups import Groups
-from open_webui.models.users import Users, UserModel
+import json
 
 
 def fill_missing_permissions(
@@ -59,8 +60,7 @@ def get_permissions(
 
     # Combine permissions from all user groups
     for group in user_groups:
-        group_permissions = group.permissions or {}
-        permissions = combine_permissions(permissions, group_permissions)
+        permissions = combine_permissions(permissions, group.permissions or {})
 
     # Ensure all fields from default_permissions are present and filled in
     permissions = fill_missing_permissions(permissions, default_permissions)
@@ -95,8 +95,7 @@ def has_permission(
     user_groups = Groups.get_groups_by_member_id(user_id)
 
     for group in user_groups:
-        group_permissions = group.permissions
-        if get_permission(group_permissions, permission_hierarchy):
+        if get_permission(group.permissions or {}, permission_hierarchy):
             return True
 
     # Check default permissions afterward if the group permissions don't allow it

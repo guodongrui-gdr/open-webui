@@ -1,12 +1,18 @@
-from typing import Optional
-
 from fastapi import APIRouter, Depends, Request, HTTPException
 from pydantic import BaseModel, ConfigDict
 
-from open_webui.config import BannerModel
-from open_webui.config import get_config, save_config
+from typing import Optional
+
 from open_webui.utils.auth import get_admin_user, get_verified_user
-from open_webui.utils.tools import get_tool_server_data, get_tool_servers_data
+from open_webui.config import get_config, save_config
+from open_webui.config import BannerModel
+
+from open_webui.utils.tools import (
+    get_tool_server_data,
+    get_tool_server_url,
+    set_tool_servers,
+)
+
 
 router = APIRouter()
 
@@ -108,10 +114,7 @@ async def set_tool_servers_config(
     request.app.state.config.TOOL_SERVER_CONNECTIONS = [
         connection.model_dump() for connection in form_data.TOOL_SERVER_CONNECTIONS
     ]
-
-    request.app.state.TOOL_SERVERS = await get_tool_servers_data(
-        request.app.state.config.TOOL_SERVER_CONNECTIONS
-    )
+    await set_tool_servers(request)
 
     return {
         "TOOL_SERVER_CONNECTIONS": request.app.state.config.TOOL_SERVER_CONNECTIONS,
@@ -133,7 +136,7 @@ async def verify_tool_servers_config(
         elif form_data.auth_type == "session":
             token = request.state.token.credentials
 
-        url = f"{form_data.url}/{form_data.path}"
+        url = get_tool_server_url(form_data.url, form_data.path)
         return await get_tool_server_data(token, url)
     except Exception as e:
         raise HTTPException(

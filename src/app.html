@@ -2,12 +2,12 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" type="image/png" href="/favicon.png" />
-		<link rel="icon" type="image/png" href="/favicon.png" sizes="96x96" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.png" />
-		<link rel="shortcut icon" href="/favicon.png" />
+		<link rel="icon" type="image/png" href="/static/favicon.png" />
+		<link rel="icon" type="image/png" href="/static/favicon-96x96.png" sizes="96x96" />
+		<link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+		<link rel="shortcut icon" href="/static/favicon.ico" />
 		<link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png" />
-		<meta name="apple-mobile-web-app-title" content="凡岛AI助手" />
+		<meta name="apple-mobile-web-app-title" content="Open WebUI" />
 
 		<link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
 		<meta
@@ -16,11 +16,11 @@
 		/>
 		<meta name="theme-color" content="#171717" />
 		<meta name="robots" content="noindex,nofollow" />
-		<meta name="description" content="凡岛AI助手" />
+		<meta name="description" content="Open WebUI" />
 		<link
 			rel="search"
 			type="application/opensearchdescription+xml"
-			title="凡岛AI助手"
+			title="Open WebUI"
 			href="/opensearch.xml"
 		/>
 		<script src="/static/loader.js" defer></script>
@@ -56,7 +56,6 @@
 					document.documentElement.classList.add('light');
 					metaThemeColorTag.setAttribute('content', '#ffffff');
 				} else if (localStorage.theme === 'her') {
-					document.documentElement.classList.add('dark');
 					document.documentElement.classList.add('her');
 					metaThemeColorTag.setAttribute('content', '#983724');
 				} else {
@@ -87,12 +86,16 @@
 
 				document.addEventListener('DOMContentLoaded', function () {
 					const splash = document.getElementById('splash-screen');
+					if (document.documentElement.classList.contains('her')) {
+						return;
+					}
+
 					if (splash) splash.prepend(logo);
 				});
 			})();
 		</script>
 
-		<title>凡岛AI助手</title>
+		<title>Open WebUI</title>
 
 		%sveltekit.head%
 	</head>
@@ -109,19 +112,6 @@
 					overflow-y: scroll !important;
 				}
 			</style>
-
-			<img
-				id="logo"
-				style="
-					position: absolute;
-					width: auto;
-					height: 6rem;
-					top: 44%;
-					left: 50%;
-					transform: translateX(-50%);
-				"
-				src="/favicon.png"
-			/>
 
 			<div
 				style="
@@ -181,6 +171,7 @@
 <style type="text/css" nonce="">
 	html {
 		overflow-y: hidden !important;
+		overscroll-behavior-y: none;
 	}
 
 	#splash-screen {
